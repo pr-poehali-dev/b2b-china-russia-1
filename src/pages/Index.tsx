@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { blogApi, type Article } from '@/lib/blogApi';
+import { supplierApi } from '@/lib/supplierApi';
 import Icon from '@/components/ui/icon';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -142,11 +143,31 @@ const tagColor: Record<string, string> = {
 const Index = () => {
   const [activeProvince, setActiveProvince] = useState('Все провинции');
   const [news, setNews] = useState<Article[]>([]);
+  const [contactForm, setContactForm] = useState({ name: '', company: '', email: '', phone: '', product_interest: '', budget: '', message: '' });
+  const [contactSent, setContactSent] = useState(false);
+  const [contactLoading, setContactLoading] = useState(false);
   const navigate = useNavigate();
 
   useEffect(() => {
     blogApi.list().then((d) => setNews((d.articles || []).slice(0, 3)));
   }, []);
+
+  const setContact = (k: string, v: string) => setContactForm((f) => ({ ...f, [k]: v }));
+
+  const submitContact = async () => {
+    if (!contactForm.name.trim() || (!contactForm.email.trim() && !contactForm.phone.trim())) {
+      return;
+    }
+    setContactLoading(true);
+    try {
+      await supplierApi.contact(contactForm);
+      setContactSent(true);
+    } catch {
+      // silent
+    } finally {
+      setContactLoading(false);
+    }
+  };
 
   return (
     <div className="min-h-screen bg-background text-foreground">
@@ -550,12 +571,12 @@ const Index = () => {
       </section>
 
       {/* Contact form */}
-      <section className="bg-secondary/50 py-20">
+      <section className="bg-secondary/50 py-20" id="contacts">
         <div className="container grid gap-10 lg:grid-cols-2">
           <div>
             <p className="font-500 text-gold">Контакты</p>
             <h2 className="font-display text-3xl font-700 text-navy md:text-4xl">
-              Отправьте заявку поставщикам
+              Отправьте заявку — мы найдём поставщика
             </h2>
             <p className="mt-4 text-muted-foreground">
               Опишите, что вы ищете — мы подберём проверенных производителей и
@@ -563,7 +584,7 @@ const Index = () => {
             </p>
             <div className="mt-8 space-y-4">
               {[
-                { icon: 'Mail', t: 'info@sinobridge.ru' },
+                { icon: 'Mail', t: 'info@chinesebridge.ru' },
                 { icon: 'Phone', t: '+7 495 000-00-00' },
                 { icon: 'MapPin', t: 'Москва · Гуанчжоу · Шэньчжэнь' },
               ].map((c) => (
@@ -575,25 +596,69 @@ const Index = () => {
                 </div>
               ))}
             </div>
+            <div className="mt-8 rounded-xl border border-border bg-background p-5">
+              <div className="flex items-center gap-3">
+                <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-gold/15 text-gold">
+                  <Icon name="Clock" size={20} />
+                </div>
+                <div>
+                  <div className="font-600 text-navy">Ответим за 24 часа</div>
+                  <div className="text-sm text-muted-foreground">Подберём поставщиков под ваш запрос</div>
+                </div>
+              </div>
+            </div>
           </div>
 
-          <Card className="border-border">
+          <Card className="border-border shadow-sm">
             <CardContent className="p-6">
-              <div className="grid gap-4 sm:grid-cols-2">
-                <Input placeholder="Имя" />
-                <Input placeholder="Компания" />
-              </div>
-              <div className="mt-4 grid gap-4 sm:grid-cols-2">
-                <Input placeholder="Email" type="email" />
-                <Input placeholder="Телефон" />
-              </div>
-              <Textarea
-                placeholder="Опишите нужные товары или услуги..."
-                className="mt-4 min-h-28"
-              />
-              <Button className="mt-4 w-full bg-gold text-gold-foreground hover:bg-gold/90">
-                Отправить заявку
-              </Button>
+              {contactSent ? (
+                <div className="flex flex-col items-center gap-4 py-10 text-center">
+                  <div className="flex h-16 w-16 items-center justify-center rounded-full bg-gold/15">
+                    <Icon name="CheckCircle2" size={36} className="text-gold" />
+                  </div>
+                  <h3 className="font-display text-xl font-700 text-navy">Заявка отправлена!</h3>
+                  <p className="text-muted-foreground">Мы свяжемся с вами в течение 24 часов и предложим подходящих поставщиков.</p>
+                  <Button variant="outline" className="border-navy text-navy mt-2" onClick={() => setContactSent(false)}>
+                    Отправить ещё одну
+                  </Button>
+                </div>
+              ) : (
+                <>
+                  <h3 className="font-display text-lg font-600 text-navy mb-4">Оставьте заявку</h3>
+                  <div className="grid gap-3 sm:grid-cols-2">
+                    <Input placeholder="Имя *" value={contactForm.name} onChange={(e) => setContact('name', e.target.value)} />
+                    <Input placeholder="Компания" value={contactForm.company} onChange={(e) => setContact('company', e.target.value)} />
+                  </div>
+                  <div className="mt-3 grid gap-3 sm:grid-cols-2">
+                    <Input placeholder="Email" type="email" value={contactForm.email} onChange={(e) => setContact('email', e.target.value)} />
+                    <Input placeholder="Телефон" value={contactForm.phone} onChange={(e) => setContact('phone', e.target.value)} />
+                  </div>
+                  <div className="mt-3 grid gap-3 sm:grid-cols-2">
+                    <Input placeholder="Какой товар ищете?" value={contactForm.product_interest} onChange={(e) => setContact('product_interest', e.target.value)} />
+                    <Input placeholder="Бюджет (напр. $5 000)" value={contactForm.budget} onChange={(e) => setContact('budget', e.target.value)} />
+                  </div>
+                  <Textarea
+                    placeholder="Дополнительные требования: объём, упаковка, сертификаты..."
+                    className="mt-3 min-h-24"
+                    value={contactForm.message}
+                    onChange={(e) => setContact('message', e.target.value)}
+                  />
+                  <Button
+                    className="mt-4 w-full bg-gold text-gold-foreground hover:bg-gold/90"
+                    disabled={contactLoading || !contactForm.name.trim() || (!contactForm.email.trim() && !contactForm.phone.trim())}
+                    onClick={submitContact}
+                  >
+                    {contactLoading ? (
+                      <><Icon name="Loader2" size={16} className="mr-2 animate-spin" />Отправка...</>
+                    ) : (
+                      <><Icon name="Send" size={16} className="mr-2" />Отправить заявку</>
+                    )}
+                  </Button>
+                  <p className="mt-2 text-center text-xs text-muted-foreground">
+                    * Обязательные поля: имя и email или телефон
+                  </p>
+                </>
+              )}
             </CardContent>
           </Card>
         </div>

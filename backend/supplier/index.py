@@ -148,6 +148,31 @@ def handler(event: dict, context) -> dict:
             lead = cur.fetchone()
             return _resp(200, {'ok': True, 'lead_id': lead['id']})
 
+        # --- CONTACT REQUEST (главная форма) ---
+        if action == 'contact' and method == 'POST':
+            name = (body.get('name') or '').strip()
+            email = (body.get('email') or '').strip()
+            phone = (body.get('phone') or '').strip()
+            if not name or (not email and not phone):
+                return _resp(400, {'error': 'Укажите имя и email или телефон'})
+            cur.execute(
+                "INSERT INTO contact_requests "
+                "(name, company, email, phone, product_interest, budget, quantity, message) "
+                "VALUES (%s, %s, %s, %s, %s, %s, %s, %s) RETURNING id",
+                (
+                    name,
+                    body.get('company', ''),
+                    email,
+                    phone,
+                    body.get('product_interest', ''),
+                    body.get('budget', ''),
+                    body.get('quantity', ''),
+                    body.get('message', ''),
+                )
+            )
+            req = cur.fetchone()
+            return _resp(200, {'ok': True, 'id': req['id']})
+
         return _resp(404, {'error': 'Неизвестное действие'})
     finally:
         cur.close()

@@ -67,4 +67,6 @@ export const supplierApi = {
   listSuppliers: (filters: Record<string, string> = {}) => get('list', filters),
   sendLead: (b: { seller_id: number; buyer_name: string; buyer_contact: string; message?: string }) =>
     post('send_lead', b),
+  contact: (b: { name: string; company?: string; email?: string; phone?: string; product_interest?: string; budget?: string; quantity?: string; message?: string }) =>
+    post('contact', b),
 };

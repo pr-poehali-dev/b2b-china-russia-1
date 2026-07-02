@@ -26,39 +26,69 @@ export async function uploadPhoto(file: File): Promise<string> {
   return data.url as string;
 }
 
+const CHUNK_SIZE = 5 * 1024 * 1024; // 5 MB — минимальный размер части для S3 multipart
+
+function readChunkAsBase64(file: File, start: number, end: number): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const slice = file.slice(start, end);
+    const reader = new FileReader();
+    reader.onload = () => resolve((reader.result as string).split(',')[1]);
+    reader.onerror = reject;
+    reader.readAsDataURL(slice);
+  });
+}
+
+async function callUpload(action: string, body: unknown) {
+  const res = await fetch(`${BASE}?action=${action}`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'X-Auth-Token': getToken() },
+    body: JSON.stringify(body),
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error || `Ошибка: ${action}`);
+  return data;
+}
+
 export async function uploadVideo(
   file: File,
   onProgress?: (pct: number) => void
 ): Promise<string> {
-  // 1. Get presigned URL from backend
-  const res = await fetch(`${BASE}?action=presign_video`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', 'X-Auth-Token': getToken() },
-    body: JSON.stringify({ filename: file.name, content_type: file.type || 'video/mp4' }),
-  });
-  const data = await res.json();
-  if (!res.ok) throw new Error(data.error || 'Ошибка получения URL');
-  const { upload_url, cdn_url } = data;
+  const contentType = file.type || 'video/mp4';
 
-  // 2. Upload file directly to S3 with XHR (to track progress)
-  await new Promise<void>((resolve, reject) => {
-    const xhr = new XMLHttpRequest();
-    xhr.open('PUT', upload_url);
-    xhr.setRequestHeader('Content-Type', file.type || 'video/mp4');
-    if (onProgress) {
-      xhr.upload.onprogress = (e) => {
-        if (e.lengthComputable) onProgress(Math.round((e.loaded / e.total) * 100));
-      };
+  // 1. Инициализируем multipart upload
+  const { upload_id, key, cdn_url } = await callUpload('video_init', { content_type: contentType });
+
+  const parts: { PartNumber: number; ETag: string }[] = [];
+  const totalChunks = Math.ceil(file.size / CHUNK_SIZE);
+
+  try {
+    for (let i = 0; i < totalChunks; i++) {
+      const start = i * CHUNK_SIZE;
+      const end = Math.min(start + CHUNK_SIZE, file.size);
+      const chunk = await readChunkAsBase64(file, start, end);
+
+      // 2. Загружаем каждый чанк через бэкенд
+      const { etag } = await callUpload('video_chunk', {
+        key,
+        upload_id,
+        part_number: i + 1,
+        chunk,
+      });
+
+      parts.push({ PartNumber: i + 1, ETag: etag });
+      if (onProgress) onProgress(Math.round(((i + 1) / totalChunks) * 95));
     }
-    xhr.onload = () => {
-      if (xhr.status >= 200 && xhr.status < 300) resolve();
-      else reject(new Error(`Ошибка загрузки: ${xhr.status}`));
-    };
-    xhr.onerror = () => reject(new Error('Ошибка сети'));
-    xhr.send(file);
-  });
 
-  return cdn_url as string;
+    // 3. Завершаем multipart upload
+    await callUpload('video_complete', { key, upload_id, parts });
+    if (onProgress) onProgress(100);
+    return cdn_url as string;
+
+  } catch (err) {
+    // Отменяем при ошибке
+    await callUpload('video_abort', { key, upload_id }).catch(() => {});
+    throw err;
+  }
 }
 
 export async function importExcel(file: File): Promise<{ imported: unknown[]; count: number; errors: string[] }> {

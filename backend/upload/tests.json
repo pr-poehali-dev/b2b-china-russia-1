@@ -14,10 +14,10 @@
       "expectedStatus": 401
     },
     {
-      "name": "Presign video without token",
+      "name": "Video init without token",
       "method": "POST",
-      "path": "/?action=presign_video",
-      "body": {"filename": "test.mp4", "content_type": "video/mp4"},
+      "path": "/?action=video_init",
+      "body": {"content_type": "video/mp4"},
       "expectedStatus": 401
     }
   ]

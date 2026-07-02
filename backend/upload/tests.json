@@ -12,6 +12,13 @@
       "path": "/?action=photo",
       "body": {"file": "aGVsbG8="},
       "expectedStatus": 401
+    },
+    {
+      "name": "Presign video without token",
+      "method": "POST",
+      "path": "/?action=presign_video",
+      "body": {"filename": "test.mp4", "content_type": "video/mp4"},
+      "expectedStatus": 401
     }
   ]
 }

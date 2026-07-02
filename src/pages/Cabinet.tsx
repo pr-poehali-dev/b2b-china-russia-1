@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { uploadPhoto, importExcel } from '@/lib/uploadApi';
+import { uploadPhoto, uploadVideo, importExcel } from '@/lib/uploadApi';
 import Icon from '@/components/ui/icon';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -338,73 +338,166 @@ const ProductsTab = ({ products, onAdded, onDeleted }: { products: Product[]; on
 
 // ---------- MEDIA TAB ----------
 const MediaTab = ({ media, onAdded, onDeleted }: { media: Media[]; onAdded: (m: Media) => void; onDeleted: (id: number) => void }) => {
-  const [open, setOpen] = useState(false);
-  const [form, setForm] = useState({ url: '', type: 'photo', caption: '' });
-  const [loading, setLoading] = useState(false);
+  const [caption, setCaption] = useState('');
+  const [uploading, setUploading] = useState(false);
+  const [videoProgress, setVideoProgress] = useState<number | null>(null);
+  const [lightbox, setLightbox] = useState<string | null>(null);
+  const photoRef = useRef<HTMLInputElement>(null);
+  const videoRef = useRef<HTMLInputElement>(null);
 
-  const submit = async () => {
-    if (!form.url.trim()) { toast({ title: 'Укажите ссылку', variant: 'destructive' }); return; }
-    setLoading(true);
+  const handlePhoto = async (files: FileList | null) => {
+    if (!files?.length) return;
+    setUploading(true);
     try {
-      const res = await api.addMedia(form);
-      onAdded(res.media);
-      toast({ title: 'Медиа добавлено' });
-      setForm({ url: '', type: 'photo', caption: '' });
-      setOpen(false);
+      for (let i = 0; i < files.length; i++) {
+        const url = await uploadPhoto(files[i]);
+        const res = await api.addMedia({ url, type: 'photo', caption });
+        onAdded(res.media);
+      }
+      toast({ title: `Загружено ${files.length} фото` });
+      setCaption('');
     } catch (e) { toast({ title: 'Ошибка', description: (e as Error).message, variant: 'destructive' }); }
-    finally { setLoading(false); }
+    finally { setUploading(false); if (photoRef.current) photoRef.current.value = ''; }
+  };
+
+  const handleVideo = async (files: FileList | null) => {
+    if (!files?.[0]) return;
+    const file = files[0];
+    setUploading(true);
+    setVideoProgress(0);
+    try {
+      const url = await uploadVideo(file, (pct) => setVideoProgress(pct));
+      const res = await api.addMedia({ url, type: 'video', caption });
+      onAdded(res.media);
+      toast({ title: 'Видео загружено!' });
+      setCaption('');
+    } catch (e) { toast({ title: 'Ошибка загрузки', description: (e as Error).message, variant: 'destructive' }); }
+    finally { setUploading(false); setVideoProgress(null); if (videoRef.current) videoRef.current.value = ''; }
   };
 
   const del = async (id: number) => {
-    try { await api.deleteMedia(id); onDeleted(id); } catch (e) { toast({ title: 'Ошибка', description: (e as Error).message, variant: 'destructive' }); }
+    try { await api.deleteMedia(id); onDeleted(id); }
+    catch (e) { toast({ title: 'Ошибка', description: (e as Error).message, variant: 'destructive' }); }
   };
 
   return (
     <div>
-      <div className="mb-4 flex items-center justify-between">
-        <p className="text-sm text-muted-foreground">Добавьте фото и видео производства, чтобы повысить доверие покупателей</p>
-        <Dialog open={open} onOpenChange={setOpen}>
-          <DialogTrigger asChild>
-            <Button className="bg-gold text-gold-foreground hover:bg-gold/90"><Icon name="Plus" size={16} className="mr-1" />Добавить</Button>
-          </DialogTrigger>
-          <DialogContent>
-            <DialogHeader><DialogTitle className="font-display text-navy">Фото / видео производства</DialogTitle></DialogHeader>
-            <div className="space-y-3">
-              <select className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm" value={form.type} onChange={(e) => setForm((f) => ({ ...f, type: e.target.value }))}>
-                <option value="photo">📷 Фото</option>
-                <option value="video">🎬 Видео</option>
-              </select>
-              <Input placeholder="URL фото или видео" value={form.url} onChange={(e) => setForm((f) => ({ ...f, url: e.target.value }))} />
-              <Input placeholder="Подпись (необязательно)" value={form.caption} onChange={(e) => setForm((f) => ({ ...f, caption: e.target.value }))} />
+      {/* Lightbox */}
+      {lightbox && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4" onClick={() => setLightbox(null)}>
+          <img src={lightbox} className="max-h-[90vh] max-w-[90vw] rounded-xl object-contain" />
+          <button className="absolute right-4 top-4 text-white"><Icon name="X" size={28} /></button>
+        </div>
+      )}
+
+      <p className="mb-4 text-sm text-muted-foreground">Фото и видео производства повышают доверие покупателей</p>
+
+      {/* Upload zones */}
+      <div className="mb-6 grid gap-4 sm:grid-cols-2">
+        {/* Photo upload */}
+        <div className="rounded-xl border-2 border-dashed border-border p-5 hover:border-gold transition-colors">
+          <div className="mb-3 flex items-center gap-2">
+            <Icon name="Image" size={20} className="text-gold" />
+            <span className="font-600 text-navy">Фотографии</span>
+          </div>
+          <p className="text-xs text-muted-foreground mb-3">JPG, PNG, WEBP · несколько файлов сразу</p>
+          <input
+            placeholder="Подпись (необязательно)"
+            value={caption}
+            onChange={e => setCaption(e.target.value)}
+            className="mb-3 h-8 w-full rounded-md border border-input bg-background px-3 text-sm"
+          />
+          <input ref={photoRef} type="file" accept="image/*" multiple className="hidden"
+            onChange={e => handlePhoto(e.target.files)} />
+          <Button
+            className="w-full bg-gold text-gold-foreground hover:bg-gold/90"
+            disabled={uploading}
+            onClick={() => photoRef.current?.click()}
+          >
+            {uploading && videoProgress === null
+              ? <><Icon name="Loader2" size={15} className="mr-1 animate-spin" />Загрузка...</>
+              : <><Icon name="Upload" size={15} className="mr-1" />Выбрать фото</>}
+          </Button>
+        </div>
+
+        {/* Video upload */}
+        <div className="rounded-xl border-2 border-dashed border-border p-5 hover:border-gold transition-colors">
+          <div className="mb-3 flex items-center gap-2">
+            <Icon name="Video" size={20} className="text-gold" />
+            <span className="font-600 text-navy">Видео производства</span>
+          </div>
+          <p className="text-xs text-muted-foreground mb-3">MP4, MOV, AVI, WEBM · любой размер</p>
+
+          {videoProgress !== null ? (
+            <div className="mb-3">
+              <div className="mb-1 flex items-center justify-between text-xs">
+                <span className="text-muted-foreground">Загружается...</span>
+                <span className="font-600 text-navy">{videoProgress}%</span>
+              </div>
+              <div className="h-2 w-full overflow-hidden rounded-full bg-secondary">
+                <div
+                  className="h-full rounded-full bg-gold transition-all duration-300"
+                  style={{ width: `${videoProgress}%` }}
+                />
+              </div>
             </div>
-            <DialogFooter>
-              <Button className="bg-gold text-gold-foreground hover:bg-gold/90" disabled={loading} onClick={submit}>
-                {loading ? 'Сохранение...' : 'Добавить'}
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
+          ) : (
+            <input
+              placeholder="Подпись (необязательно)"
+              value={caption}
+              onChange={e => setCaption(e.target.value)}
+              className="mb-3 h-8 w-full rounded-md border border-input bg-background px-3 text-sm"
+            />
+          )}
+
+          <input ref={videoRef} type="file" accept="video/*" className="hidden"
+            onChange={e => handleVideo(e.target.files)} />
+          <Button
+            className="w-full bg-navy text-white hover:bg-navy-deep"
+            disabled={uploading}
+            onClick={() => videoRef.current?.click()}
+          >
+            {videoProgress !== null
+              ? <><Icon name="Loader2" size={15} className="mr-1 animate-spin" />Загрузка {videoProgress}%</>
+              : <><Icon name="Film" size={15} className="mr-1" />Выбрать видео</>}
+          </Button>
+        </div>
       </div>
 
+      {/* Gallery */}
       {media.length === 0 ? (
         <Card className="border-dashed"><CardContent className="flex flex-col items-center gap-2 py-12 text-center">
           <Icon name="ImagePlus" size={40} className="text-muted-foreground" />
-          <p className="text-muted-foreground">Загрузите фото и видео производства</p>
+          <p className="text-muted-foreground">Загруженные фото и видео появятся здесь</p>
         </CardContent></Card>
       ) : (
         <div className="grid grid-cols-2 gap-4 md:grid-cols-3">
           {media.map((m) => (
             <div key={m.id} className="group relative overflow-hidden rounded-xl border border-border bg-secondary">
               {m.type === 'photo' ? (
-                <img src={m.url} alt={m.caption || ''} className="h-40 w-full object-cover" onError={(e) => { (e.target as HTMLImageElement).src = '/placeholder.svg'; }} />
+                <div className="cursor-pointer" onClick={() => setLightbox(m.url)}>
+                  <img src={m.url} alt={m.caption || ''} className="h-40 w-full object-cover transition-transform group-hover:scale-105"
+                    onError={(e) => { (e.target as HTMLImageElement).src = '/placeholder.svg'; }} />
+                </div>
               ) : (
-                <div className="flex h-40 items-center justify-center flex-col gap-2">
-                  <Icon name="PlayCircle" size={36} className="text-navy" />
-                  <span className="text-xs text-muted-foreground">Видео</span>
+                <div className="flex h-40 flex-col items-center justify-center gap-2">
+                  <div className="flex h-12 w-12 items-center justify-center rounded-full bg-navy/10">
+                    <Icon name="PlayCircle" size={36} className="text-navy" />
+                  </div>
+                  <a href={m.url} target="_blank" rel="noreferrer" className="text-xs text-gold hover:underline">
+                    Открыть видео
+                  </a>
                 </div>
               )}
-              {m.caption && <p className="p-2 text-xs text-muted-foreground">{m.caption}</p>}
-              <button className="absolute right-2 top-2 rounded-full bg-white/80 p-1 opacity-0 transition-opacity group-hover:opacity-100" onClick={() => del(m.id)}>
+              {m.caption && <p className="px-2 pb-2 pt-1 text-xs text-muted-foreground">{m.caption}</p>}
+              {/* Type badge */}
+              <span className="absolute left-2 top-2 rounded-full bg-black/40 px-2 py-0.5 text-[10px] text-white">
+                {m.type === 'video' ? '🎬 Видео' : '📷 Фото'}
+              </span>
+              <button
+                className="absolute right-2 top-2 rounded-full bg-white/80 p-1 opacity-0 transition-opacity group-hover:opacity-100"
+                onClick={() => del(m.id)}
+              >
                 <Icon name="X" size={14} className="text-destructive" />
               </button>
             </div>

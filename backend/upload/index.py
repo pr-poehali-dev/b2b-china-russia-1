@@ -185,4 +185,22 @@ def handler(event: dict, context) -> dict:
             'errors': errors,
         })
 
+    # --- PRESIGN VIDEO (прямая загрузка большого файла в S3) ---
+    if action == 'presign_video':
+        filename = (body.get('filename') or 'video.mp4').strip()
+        content_type = body.get('content_type', 'video/mp4')
+        allowed_types = {'video/mp4', 'video/quicktime', 'video/x-msvideo', 'video/webm', 'video/mpeg'}
+        if content_type not in allowed_types:
+            content_type = 'video/mp4'
+        ext_map = {'video/mp4': 'mp4', 'video/quicktime': 'mov', 'video/x-msvideo': 'avi', 'video/webm': 'webm', 'video/mpeg': 'mpg'}
+        ext = ext_map.get(content_type, 'mp4')
+        key = f"media/{seller_id}/videos/{uuid.uuid4().hex}.{ext}"
+        presigned_url = s3.generate_presigned_url(
+            'put_object',
+            Params={'Bucket': 'files', 'Key': key, 'ContentType': content_type},
+            ExpiresIn=3600,
+        )
+        cdn_url = _cdn(key)
+        return _resp(200, {'upload_url': presigned_url, 'cdn_url': cdn_url, 'key': key})
+
     return _resp(404, {'error': 'Неизвестное действие'})

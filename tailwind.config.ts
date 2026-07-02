@@ -18,7 +18,19 @@ export default {
 			}
 		},
 		extend: {
+			fontFamily: {
+				sans: ['Manrope', 'system-ui', 'sans-serif'],
+				display: ['Oswald', 'sans-serif'],
+			},
 			colors: {
+				gold: {
+					DEFAULT: 'hsl(38 92% 50%)',
+					foreground: 'hsl(218 62% 14%)'
+				},
+				navy: {
+					DEFAULT: 'hsl(218 62% 18%)',
+					deep: 'hsl(218 68% 12%)'
+				},
 				border: 'hsl(var(--border))',
 				input: 'hsl(var(--input))',
 				ring: 'hsl(var(--ring))',

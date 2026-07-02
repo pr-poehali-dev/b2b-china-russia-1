@@ -1,0 +1,8 @@
+{
+  "tests": [
+    {"name": "OPTIONS CORS", "method": "OPTIONS", "path": "/", "expectedStatus": 200},
+    {"name": "Feed new", "method": "GET", "path": "/?action=feed&tab=new", "expectedStatus": 200},
+    {"name": "Like without body", "method": "POST", "path": "/?action=like", "body": {}, "expectedStatus": 400},
+    {"name": "Analytics without seller_id", "method": "GET", "path": "/?action=analytics", "expectedStatus": 400}
+  ]
+}

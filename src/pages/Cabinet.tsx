@@ -509,14 +509,44 @@ const MediaTab = ({ media, onAdded, onDeleted }: { media: Media[]; onAdded: (m: 
 };
 
 // ---------- REELS TAB ----------
-const ReelsTab = ({ media, onAdded, onDeleted }: { media: Media[]; onAdded: (m: Media) => void; onDeleted: (id: number) => void }) => {
+const VIDEO_CATEGORIES = ['Производство', 'Упаковка', 'Контроль качества', 'Отгрузка', 'Склад', 'Новинки', 'Акции'];
+
+const ReelsTab = ({ media, onAdded, onDeleted, seller }: {
+  media: Media[];
+  onAdded: (m: Media) => void;
+  onDeleted: (id: number) => void;
+  seller: Seller | null;
+}) => {
+  const navigate = useNavigate();
   const [caption, setCaption] = useState('');
+  const [hashtagInput, setHashtagInput] = useState('');
+  const [hashtags, setHashtags] = useState<string[]>([]);
+  const [videoCategory, setVideoCategory] = useState('');
   const [videoProgress, setVideoProgress] = useState<number | null>(null);
   const [uploading, setUploading] = useState(false);
   const [playing, setPlaying] = useState<number | null>(null);
+  const [analytics, setAnalytics] = useState<{ total_videos: number; total_views: number; total_likes: number } | null>(null);
   const videoRef = useRef<HTMLInputElement>(null);
 
   const videos = media.filter(m => m.type === 'video');
+
+  useEffect(() => {
+    if (seller?.id) {
+      import('@/lib/feedApi').then(({ feedApi }) => {
+        feedApi.analytics(String(seller.id)).then(d => {
+          if (d.totals) setAnalytics(d.totals);
+        });
+      });
+    }
+  }, [seller?.id]);
+
+  const addHashtag = () => {
+    const tag = hashtagInput.trim().replace(/^#/, '').replace(/\s+/g, '');
+    if (tag && !hashtags.includes(tag) && hashtags.length < 8) {
+      setHashtags(h => [...h, tag]);
+      setHashtagInput('');
+    }
+  };
 
   const handleVideo = async (files: FileList | null) => {
     if (!files?.[0]) return;
@@ -525,9 +555,17 @@ const ReelsTab = ({ media, onAdded, onDeleted }: { media: Media[]; onAdded: (m: 
     try {
       const url = await uploadVideo(files[0], pct => setVideoProgress(pct));
       const res = await api.addMedia({ url, type: 'video', caption });
+      // update meta with hashtags & category
+      if (hashtags.length > 0 || videoCategory) {
+        import('@/lib/feedApi').then(({ feedApi }) => {
+          import('@/lib/cabinetApi').then(({ getToken }) => {
+            feedApi.updateVideo(getToken(), res.media.id, caption, hashtags, videoCategory);
+          });
+        });
+      }
       onAdded(res.media);
-      toast({ title: 'Видео загружено!' });
-      setCaption('');
+      toast({ title: 'Видео загружено и появилось в ленте!' });
+      setCaption(''); setHashtags([]); setVideoCategory('');
     } catch (e) { toast({ title: 'Ошибка', description: (e as Error).message, variant: 'destructive' }); }
     finally { setUploading(false); setVideoProgress(null); if (videoRef.current) videoRef.current.value = ''; }
   };
@@ -538,31 +576,99 @@ const ReelsTab = ({ media, onAdded, onDeleted }: { media: Media[]; onAdded: (m: 
   };
 
   return (
-    <div>
-      {/* Upload zone */}
-      <div className="mb-6 rounded-2xl border-2 border-dashed border-border bg-secondary/30 p-6 hover:border-gold transition-colors">
-        <div className="flex flex-col items-center gap-3 text-center">
-          <div className="flex h-16 w-16 items-center justify-center rounded-full bg-navy/10">
-            <Icon name="Film" size={32} className="text-navy" />
-          </div>
-          <div>
-            <p className="font-600 text-navy">Загрузить видео-рилс</p>
-            <p className="text-sm text-muted-foreground">MP4, MOV, WEBM · вертикальный формат 9:16</p>
-            <div className="flex items-center gap-1.5 rounded-lg bg-gold/10 px-3 py-1.5 text-xs text-gold">
-              <Icon name="Info" size={13} />
-              Максимальный размер файла — 7 МБ. Для сжатия используйте <a href="https://www.veed.io/compress-video" target="_blank" rel="noreferrer" className="underline">veed.io</a> или HandBrake.
+    <div className="space-y-5">
+
+      {/* Analytics strip */}
+      {analytics && (
+        <div className="grid grid-cols-3 gap-3">
+          {[
+            { v: analytics.total_videos, l: 'Видео', icon: 'Film' },
+            { v: analytics.total_views, l: 'Просмотров', icon: 'Eye' },
+            { v: analytics.total_likes, l: 'Лайков', icon: 'Heart' },
+          ].map(m => (
+            <div key={m.l} className="rounded-xl border border-border bg-background p-3 text-center">
+              <Icon name={m.icon} size={18} className="mx-auto mb-1 text-gold" />
+              <div className="font-display text-xl font-700 text-navy">{m.v}</div>
+              <div className="text-xs text-muted-foreground">{m.l}</div>
             </div>
+          ))}
+        </div>
+      )}
+
+      {/* Link to public feed */}
+      <div className="flex items-center justify-between rounded-xl border border-gold/30 bg-gold/5 px-4 py-3">
+        <div className="flex items-center gap-2">
+          <Icon name="Clapperboard" size={18} className="text-gold" />
+          <div>
+            <div className="text-sm font-600 text-navy">Публичная лента видео</div>
+            <div className="text-xs text-muted-foreground">Ваши видео видят все покупатели</div>
           </div>
-          <Input
-            placeholder="Подпись к видео (необязательно)"
+        </div>
+        <Button size="sm" className="bg-gold text-gold-foreground hover:bg-gold/90" onClick={() => navigate('/feed')}>
+          Открыть
+        </Button>
+      </div>
+
+      {/* Upload zone */}
+      <div className="rounded-2xl border-2 border-dashed border-border bg-secondary/30 p-5 hover:border-gold transition-colors">
+        <p className="mb-4 font-600 text-navy flex items-center gap-2">
+          <Icon name="Upload" size={18} className="text-gold" />
+          Загрузить новое видео
+        </p>
+        <div className="space-y-3">
+          <Textarea
+            placeholder="Описание видео — что показано, какой товар или процесс..."
             value={caption}
             onChange={e => setCaption(e.target.value)}
-            className="max-w-xs"
+            className="min-h-20 resize-none"
           />
+          <select
+            className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm"
+            value={videoCategory}
+            onChange={e => setVideoCategory(e.target.value)}
+          >
+            <option value="">Категория видео</option>
+            {VIDEO_CATEGORIES.map(c => <option key={c}>{c}</option>)}
+          </select>
+
+          {/* Hashtags */}
+          <div>
+            <div className="flex gap-2">
+              <Input
+                placeholder="Хэштег (без #) — нажмите Enter"
+                value={hashtagInput}
+                onChange={e => setHashtagInput(e.target.value)}
+                onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); addHashtag(); } }}
+                className="flex-1"
+              />
+              <Button variant="outline" className="border-navy text-navy shrink-0" onClick={addHashtag}>
+                + Добавить
+              </Button>
+            </div>
+            {hashtags.length > 0 && (
+              <div className="mt-2 flex flex-wrap gap-1.5">
+                {hashtags.map(tag => (
+                  <span key={tag} className="flex items-center gap-1 rounded-full bg-gold/15 px-2.5 py-1 text-xs font-500 text-gold">
+                    #{tag}
+                    <button onClick={() => setHashtags(h => h.filter(t => t !== tag))}>
+                      <Icon name="X" size={11} />
+                    </button>
+                  </span>
+                ))}
+              </div>
+            )}
+            <p className="mt-1 text-xs text-muted-foreground">#станки #одежда #мебель #производство — помогают покупателям найти вас</p>
+          </div>
+
+          <div className="rounded-lg bg-amber-50 border border-amber-200 px-3 py-2 text-xs text-amber-700 flex items-center gap-1.5">
+            <Icon name="Info" size={13} />
+            Максимум 7 МБ. Сожмите на <a href="https://www.veed.io/compress-video" target="_blank" rel="noreferrer" className="underline font-500">veed.io</a> если файл больше.
+          </div>
+
           {videoProgress !== null && (
-            <div className="w-full max-w-xs">
+            <div>
               <div className="mb-1 flex justify-between text-xs text-muted-foreground">
-                <span>Загружается...</span>
+                <span>Загружается в ленту...</span>
                 <span className="font-600 text-navy">{videoProgress}%</span>
               </div>
               <div className="h-2 w-full overflow-hidden rounded-full bg-border">
@@ -570,9 +676,10 @@ const ReelsTab = ({ media, onAdded, onDeleted }: { media: Media[]; onAdded: (m: 
               </div>
             </div>
           )}
+
           <input ref={videoRef} type="file" accept="video/*" className="hidden" onChange={e => handleVideo(e.target.files)} />
           <Button
-            className="bg-gold text-gold-foreground hover:bg-gold/90 px-8"
+            className="w-full bg-gold text-gold-foreground hover:bg-gold/90 h-11"
             disabled={uploading}
             onClick={() => videoRef.current?.click()}
           >
@@ -583,13 +690,13 @@ const ReelsTab = ({ media, onAdded, onDeleted }: { media: Media[]; onAdded: (m: 
         </div>
       </div>
 
-      {/* Reels grid */}
+      {/* Videos grid */}
       {videos.length === 0 ? (
         <Card className="border-dashed">
-          <CardContent className="flex flex-col items-center gap-2 py-14 text-center">
-            <Icon name="Clapperboard" size={44} className="text-muted-foreground" />
-            <p className="font-600 text-navy">Видео-рилсы не добавлены</p>
-            <p className="text-sm text-muted-foreground">Покажите производство, процессы, качество товаров</p>
+          <CardContent className="flex flex-col items-center gap-2 py-12 text-center">
+            <Icon name="Clapperboard" size={40} className="text-muted-foreground" />
+            <p className="font-600 text-navy">Видео ещё не загружены</p>
+            <p className="text-sm text-muted-foreground">Покажите производство, упаковку, контроль качества</p>
           </CardContent>
         </Card>
       ) : (
@@ -597,39 +704,27 @@ const ReelsTab = ({ media, onAdded, onDeleted }: { media: Media[]; onAdded: (m: 
           {videos.map((m) => (
             <div key={m.id} className="group relative overflow-hidden rounded-2xl bg-black" style={{ aspectRatio: '9/16' }}>
               {playing === m.id ? (
-                <video
-                  src={m.url}
-                  className="h-full w-full object-cover"
-                  controls
-                  autoPlay
-                  onEnded={() => setPlaying(null)}
-                />
+                <video src={m.url} className="h-full w-full object-cover" controls autoPlay onEnded={() => setPlaying(null)} />
               ) : (
                 <>
-                  <video
-                    src={m.url + '#t=0.5'}
-                    className="h-full w-full object-cover opacity-80"
-                    preload="metadata"
-                    muted
-                  />
-                  <div className="absolute inset-0 flex flex-col items-center justify-center gap-2">
-                    <button
-                      onClick={() => setPlaying(m.id)}
-                      className="flex h-14 w-14 items-center justify-center rounded-full bg-white/20 backdrop-blur-sm border border-white/40 transition-transform hover:scale-110"
-                    >
-                      <Icon name="Play" size={24} className="text-white ml-1" />
-                    </button>
-                  </div>
-                  {m.caption && (
-                    <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 p-3">
-                      <p className="text-xs text-white line-clamp-2">{m.caption}</p>
+                  <video src={m.url + '#t=0.5'} className="h-full w-full object-cover opacity-70" preload="metadata" muted />
+                  <div className="absolute inset-0 flex items-center justify-center" onClick={() => setPlaying(m.id)}>
+                    <div className="flex h-12 w-12 items-center justify-center rounded-full bg-white/25 backdrop-blur-sm border border-white/40">
+                      <Icon name="Play" size={20} className="text-white ml-0.5" />
                     </div>
-                  )}
+                  </div>
+                  <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 p-2">
+                    {m.caption && <p className="text-[11px] text-white line-clamp-2 mb-1">{m.caption}</p>}
+                    <div className="flex items-center gap-2 text-[10px] text-white/70">
+                      <span className="flex items-center gap-0.5"><Icon name="Eye" size={10} />{(m as Media & { views_count?: number }).views_count || 0}</span>
+                      <span className="flex items-center gap-0.5"><Icon name="Heart" size={10} />{(m as Media & { likes_count?: number }).likes_count || 0}</span>
+                    </div>
+                  </div>
                   <button
-                    className="absolute right-2 top-2 rounded-full bg-black/50 p-1.5 opacity-0 transition-opacity group-hover:opacity-100"
+                    className="absolute right-1.5 top-1.5 rounded-full bg-black/60 p-1.5 opacity-0 transition-opacity group-hover:opacity-100"
                     onClick={() => del(m.id)}
                   >
-                    <Icon name="Trash2" size={14} className="text-white" />
+                    <Icon name="Trash2" size={12} className="text-white" />
                   </button>
                 </>
               )}
@@ -1330,6 +1425,7 @@ const Cabinet = () => {
             <TabsContent value="reels">
               <ReelsTab
                 media={media}
+                seller={seller}
                 onAdded={(m) => setMedia((ms) => [m, ...ms])}
                 onDeleted={(id) => setMedia((ms) => ms.filter((m) => m.id !== id))}
               />

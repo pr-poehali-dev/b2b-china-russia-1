@@ -25,8 +25,7 @@ const FACTORY_IMG =
 const NAV = [
   { label: 'Главная', href: '/' },
   { label: 'Поставщики', href: '/suppliers' },
-  { label: 'Товары', href: '/suppliers' },
-  { label: 'Производители', href: '/suppliers?plan=Gold' },
+  { label: '🎬 Видео', href: '/feed' },
   { label: 'Логистика', href: '/logistics' },
   { label: 'Новости', href: '/blog' },
   { label: 'Контакты', href: '#contacts' },
@@ -558,6 +557,66 @@ const Index = () => {
                 </div>
               </div>
             ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Video Feed promo */}
+      <section className="container py-12 md:py-20">
+        <div className="overflow-hidden rounded-3xl bg-navy-deep text-white">
+          <div className="grid md:grid-cols-2 items-center">
+            <div className="p-8 md:p-12">
+              <div className="mb-4 inline-flex items-center gap-2 rounded-full bg-gold/20 px-3 py-1.5">
+                <span className="text-sm">🎬</span>
+                <span className="text-sm font-600 text-gold">Новинка платформы</span>
+              </div>
+              <h2 className="font-display text-2xl font-700 sm:text-3xl md:text-4xl">
+                Видео с реальных заводов Китая
+              </h2>
+              <p className="mt-4 text-white/70 leading-relaxed">
+                Смотрите производство, упаковку, контроль качества и отгрузку в Россию. Оценивайте поставщиков до переговоров — как в TikTok, но для B2B.
+              </p>
+              <div className="mt-6 flex flex-wrap gap-2">
+                {['🏭 Производство', '📦 Упаковка', '✅ Качество', '🚢 Отгрузка', '⚙️ Оборудование'].map(tag => (
+                  <span key={tag} className="rounded-full border border-white/20 bg-white/10 px-3 py-1 text-xs text-white/80">{tag}</span>
+                ))}
+              </div>
+              <div className="mt-8 flex flex-wrap gap-3">
+                <Button
+                  className="bg-gold text-gold-foreground hover:bg-gold/90 h-12 px-6"
+                  onClick={() => navigate('/feed')}
+                >
+                  <Icon name="Play" size={18} className="mr-2" />
+                  Смотреть видео
+                </Button>
+                <Button
+                  variant="outline"
+                  className="border-white/30 text-white hover:bg-white/10 h-12 px-6"
+                  onClick={() => navigate('/cabinet')}
+                >
+                  Загрузить своё видео
+                </Button>
+              </div>
+            </div>
+            <div className="hidden md:flex items-center justify-center gap-3 p-8">
+              {['🏭', '📦', '⚙️'].map((emoji, i) => (
+                <div
+                  key={i}
+                  className="flex flex-col items-center justify-end rounded-2xl bg-white/10 backdrop-blur-sm border border-white/10 overflow-hidden"
+                  style={{ width: 100, height: 178, transform: i === 1 ? 'translateY(-16px)' : 'none' }}
+                >
+                  <div className="flex-1 flex items-center justify-center text-4xl">{emoji}</div>
+                  <div className="w-full bg-black/40 p-2">
+                    <div className="flex items-center gap-1 mb-1">
+                      <div className="h-4 w-4 rounded-full bg-gold/60" />
+                      <div className="h-1.5 w-12 rounded bg-white/30" />
+                    </div>
+                    <div className="h-1 w-full rounded bg-white/20 mb-0.5" />
+                    <div className="h-1 w-2/3 rounded bg-white/20" />
+                  </div>
+                </div>
+              ))}
+            </div>
           </div>
         </div>
       </section>

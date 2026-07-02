@@ -1,0 +1,29 @@
+{
+  "tests": [
+    {
+      "name": "OPTIONS CORS",
+      "method": "OPTIONS",
+      "path": "/",
+      "expectedStatus": 200
+    },
+    {
+      "name": "List companies",
+      "method": "GET",
+      "path": "/?action=list",
+      "expectedStatus": 200
+    },
+    {
+      "name": "Get without id",
+      "method": "GET",
+      "path": "/?action=get",
+      "expectedStatus": 400
+    },
+    {
+      "name": "Add review without data",
+      "method": "POST",
+      "path": "/?action=add_review",
+      "body": {},
+      "expectedStatus": 400
+    }
+  ]
+}

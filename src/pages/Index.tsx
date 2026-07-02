@@ -26,7 +26,7 @@ const NAV = [
   { label: 'Поставщики', href: '/suppliers' },
   { label: 'Товары', href: '/suppliers' },
   { label: 'Производители', href: '/suppliers?plan=Gold' },
-  { label: 'Логистика', href: '#logistics' },
+  { label: 'Логистика', href: '/logistics' },
   { label: 'Новости', href: '/blog' },
   { label: 'Контакты', href: '#contacts' },
 ];
@@ -476,17 +476,28 @@ const Index = () => {
       {/* Logistics */}
       <section className="bg-navy-deep py-20 text-white">
         <div className="container">
-          <div className="mb-10">
-            <p className="font-500 text-gold">Логистика</p>
-            <h2 className="font-display text-3xl font-700 md:text-4xl">
-              Доставка из Китая под ключ
-            </h2>
+          <div className="mb-10 flex flex-wrap items-end justify-between gap-4">
+            <div>
+              <p className="font-500 text-gold">Логистика</p>
+              <h2 className="font-display text-3xl font-700 md:text-4xl">
+                Доставка из Китая под ключ
+              </h2>
+            </div>
+            <Button
+              variant="outline"
+              className="border-white/30 text-white hover:bg-white/10 hover:text-white"
+              onClick={() => navigate('/logistics')}
+            >
+              Все компании
+              <Icon name="ArrowRight" size={16} className="ml-1" />
+            </Button>
           </div>
           <div className="grid gap-5 md:grid-cols-3">
             {LOGISTICS.map((l) => (
               <div
                 key={l.name}
-                className="rounded-xl border border-white/10 bg-white/5 p-6 transition-colors hover:border-gold/40"
+                className="cursor-pointer rounded-xl border border-white/10 bg-white/5 p-6 transition-colors hover:border-gold/40"
+                onClick={() => navigate('/logistics')}
               >
                 <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-lg bg-gold text-gold-foreground">
                   <Icon name={l.icon} size={24} />

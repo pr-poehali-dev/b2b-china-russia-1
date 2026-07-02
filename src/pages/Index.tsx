@@ -1,5 +1,6 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { blogApi, type Article } from '@/lib/blogApi';
 import Icon from '@/components/ui/icon';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -26,7 +27,7 @@ const NAV = [
   { label: 'Товары', href: '/suppliers' },
   { label: 'Производители', href: '/suppliers?plan=Gold' },
   { label: 'Логистика', href: '#logistics' },
-  { label: 'Новости', href: '#news' },
+  { label: 'Новости', href: '/blog' },
   { label: 'Контакты', href: '#contacts' },
 ];
 
@@ -125,23 +126,12 @@ const LOGISTICS = [
   },
 ];
 
-const NEWS = [
-  {
-    tag: 'Торговля',
-    title: 'Товарооборот России и Китая вырос на 21% за квартал',
-    date: '28 июня 2026',
-  },
-  {
-    tag: 'Логистика',
-    title: 'Новый ж/д маршрут сократил доставку из Гуандуна на 5 дней',
-    date: '24 июня 2026',
-  },
-  {
-    tag: 'Регулирование',
-    title: 'Упрощён порядок сертификации электроники EAC',
-    date: '19 июня 2026',
-  },
-];
+const TAG_BADGE: Record<string, string> = {
+  'Торговля': 'bg-navy text-white',
+  'Логистика': 'bg-gold text-gold-foreground',
+  'Регулирование': 'bg-secondary text-navy border border-border',
+  'Новости': 'bg-secondary text-navy border border-border',
+};
 
 const tagColor: Record<string, string> = {
   Gold: 'bg-gold text-gold-foreground',
@@ -151,7 +141,12 @@ const tagColor: Record<string, string> = {
 
 const Index = () => {
   const [activeProvince, setActiveProvince] = useState('Все провинции');
+  const [news, setNews] = useState<Article[]>([]);
   const navigate = useNavigate();
+
+  useEffect(() => {
+    blogApi.list().then((d) => setNews((d.articles || []).slice(0, 3)));
+  }, []);
 
   return (
     <div className="min-h-screen bg-background text-foreground">
@@ -517,21 +512,25 @@ const Index = () => {
               Торговля Китай — Россия
             </h2>
           </div>
-          <Button variant="outline" className="border-navy text-navy">
+          <Button variant="outline" className="border-navy text-navy" onClick={() => navigate('/blog')}>
             Все статьи
           </Button>
         </div>
         <div className="grid gap-5 md:grid-cols-3">
-          {NEWS.map((n) => (
-            <Card key={n.title} className="hover-lift border-border">
+          {news.map((n) => (
+            <Card
+              key={n.id}
+              className="hover-lift cursor-pointer border-border"
+              onClick={() => navigate(`/blog/${n.slug}`)}
+            >
               <CardContent className="p-6">
-                <Badge variant="secondary" className="mb-3">
+                <Badge className={`mb-3 ${TAG_BADGE[n.tag] || TAG_BADGE['Новости']}`}>
                   {n.tag}
                 </Badge>
                 <h3 className="font-600 leading-snug text-navy">{n.title}</h3>
                 <div className="mt-4 flex items-center gap-2 text-sm text-muted-foreground">
                   <Icon name="Calendar" size={14} />
-                  {n.date}
+                  {n.published_at ? new Date(n.published_at).toLocaleDateString('ru-RU', { day: 'numeric', month: 'long' }) : ''}
                 </div>
               </CardContent>
             </Card>

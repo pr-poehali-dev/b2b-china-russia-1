@@ -28,6 +28,7 @@ import {
   type Media,
   type Stats,
 } from '@/lib/cabinetApi';
+import { blogApi, type Article } from '@/lib/blogApi';
 
 const CATEGORIES = ['Электроника', 'Текстиль и одежда', 'Товары для дома', 'Автозапчасти', 'Промоборудование', 'Упаковка'];
 const PROVINCES = ['Гуандун', 'Чжэцзян', 'Цзянсу', 'Шаньдун', 'Фуцзянь', 'Хэбэй', 'Шанхай', 'Пекин'];
@@ -537,6 +538,152 @@ const PremiumTab = ({ currentPlan, premium, onBuy }: { currentPlan: string; prem
   );
 };
 
+// ---------- BLOG TAB ----------
+const ARTICLE_TAGS = ['Новости', 'Торговля', 'Логистика', 'Регулирование', 'Аналитика'];
+
+const BlogTab = ({ navigate }: { navigate: (p: string) => void }) => {
+  const [articles, setArticles] = useState<Article[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [open, setOpen] = useState(false);
+  const [editing, setEditing] = useState<Article | null>(null);
+  const [form, setForm] = useState({ title: '', excerpt: '', content: '', cover_url: '', tag: 'Новости', author: 'Редакция ChineseBridge', published: false });
+  const [saving, setSaving] = useState(false);
+  const set = (k: string, v: string | boolean) => setForm((f) => ({ ...f, [k]: v }));
+
+  const load = () => {
+    setLoading(true);
+    blogApi.listAll()
+      .then((d) => setArticles(d.articles || []))
+      .finally(() => setLoading(false));
+  };
+
+  useEffect(() => { load(); }, []);
+
+  const openNew = () => {
+    setEditing(null);
+    setForm({ title: '', excerpt: '', content: '', cover_url: '', tag: 'Новости', author: 'Редакция ChineseBridge', published: false });
+    setOpen(true);
+  };
+
+  const openEdit = (a: Article) => {
+    setEditing(a);
+    setForm({ title: a.title, excerpt: a.excerpt || '', content: a.content || '', cover_url: a.cover_url || '', tag: a.tag, author: a.author, published: !!a.published });
+    setOpen(true);
+  };
+
+  const save = async () => {
+    if (!form.title.trim()) { toast({ title: 'Укажите заголовок', variant: 'destructive' }); return; }
+    setSaving(true);
+    try {
+      if (editing) {
+        await blogApi.update({ id: editing.id, ...form });
+        toast({ title: 'Статья обновлена' });
+      } else {
+        await blogApi.create(form);
+        toast({ title: 'Статья создана' });
+      }
+      setOpen(false);
+      load();
+    } catch (e) { toast({ title: 'Ошибка', description: (e as Error).message, variant: 'destructive' }); }
+    finally { setSaving(false); }
+  };
+
+  const toggle = async (id: number) => {
+    try {
+      await blogApi.togglePublish(id);
+      setArticles((as) => as.map((a) => a.id === id ? { ...a, published: !a.published } : a));
+    } catch (e) { toast({ title: 'Ошибка', description: (e as Error).message, variant: 'destructive' }); }
+  };
+
+  return (
+    <div>
+      <div className="mb-4 flex items-center justify-between">
+        <p className="text-sm text-muted-foreground">Управляйте новостями и статьями платформы</p>
+        <Button className="bg-gold text-gold-foreground hover:bg-gold/90" onClick={openNew}>
+          <Icon name="Plus" size={16} className="mr-1" />Новая статья
+        </Button>
+      </div>
+
+      <Dialog open={open} onOpenChange={setOpen}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle className="font-display text-navy">{editing ? 'Редактировать статью' : 'Новая статья'}</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3 max-h-[60vh] overflow-y-auto pr-1">
+            <Input placeholder="Заголовок *" value={form.title} onChange={(e) => set('title', e.target.value)} />
+            <div className="grid grid-cols-2 gap-3">
+              <select className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm" value={form.tag} onChange={(e) => set('tag', e.target.value)}>
+                {ARTICLE_TAGS.map((t) => <option key={t}>{t}</option>)}
+              </select>
+              <Input placeholder="Автор" value={form.author} onChange={(e) => set('author', e.target.value)} />
+            </div>
+            <Input placeholder="Ссылка на обложку (URL)" value={form.cover_url} onChange={(e) => set('cover_url', e.target.value)} />
+            <Textarea placeholder="Краткое описание (анонс)" value={form.excerpt} onChange={(e) => set('excerpt', e.target.value)} className="min-h-16" />
+            <Textarea placeholder="Текст статьи (поддерживается HTML: <p>, <h2>, <ul>, <strong>)" value={form.content} onChange={(e) => set('content', e.target.value)} className="min-h-40 font-mono text-sm" />
+            <label className="flex items-center gap-2 cursor-pointer">
+              <input type="checkbox" checked={form.published} onChange={(e) => set('published', e.target.checked)} className="h-4 w-4 rounded" />
+              <span className="text-sm font-500 text-navy">Опубликовать сразу</span>
+            </label>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setOpen(false)}>Отмена</Button>
+            <Button className="bg-gold text-gold-foreground hover:bg-gold/90" disabled={saving} onClick={save}>
+              {saving ? 'Сохранение...' : 'Сохранить'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {loading ? (
+        <div className="space-y-3">{Array.from({ length: 3 }).map((_, i) => <div key={i} className="h-16 animate-pulse rounded-xl bg-secondary" />)}</div>
+      ) : articles.length === 0 ? (
+        <Card className="border-dashed"><CardContent className="flex flex-col items-center gap-2 py-12 text-center">
+          <Icon name="Newspaper" size={40} className="text-muted-foreground" />
+          <p className="text-muted-foreground">Статей пока нет. Создайте первую!</p>
+        </CardContent></Card>
+      ) : (
+        <div className="space-y-3">
+          {articles.map((a) => (
+            <Card key={a.id} className="border-border">
+              <CardContent className="flex flex-wrap items-center justify-between gap-3 p-4">
+                <div className="flex-1 min-w-0">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="font-600 text-navy truncate">{a.title}</span>
+                    <Badge variant={a.published ? 'default' : 'secondary'} className={a.published ? 'bg-green-600 text-white' : ''}>
+                      {a.published ? 'Опубликована' : 'Черновик'}
+                    </Badge>
+                    <Badge variant="outline">{a.tag}</Badge>
+                  </div>
+                  <div className="mt-1 flex items-center gap-3 text-xs text-muted-foreground">
+                    <span className="flex items-center gap-1"><Icon name="Eye" size={11} />{a.views}</span>
+                    {a.published_at && <span>{new Date(a.published_at).toLocaleDateString('ru-RU')}</span>}
+                  </div>
+                </div>
+                <div className="flex items-center gap-2">
+                  {a.published && (
+                    <Button variant="ghost" size="sm" className="text-gold" onClick={() => navigate(`/blog/${a.slug}`)}>
+                      <Icon name="ExternalLink" size={15} />
+                    </Button>
+                  )}
+                  <Button variant="ghost" size="sm" className="text-navy" onClick={() => openEdit(a)}>
+                    <Icon name="Pencil" size={15} />
+                  </Button>
+                  <button
+                    onClick={() => toggle(a.id)}
+                    className={`rounded-full border px-3 py-1 text-xs font-500 transition-colors ${a.published ? 'border-border text-muted-foreground hover:border-red-300' : 'border-green-500 text-green-600 hover:bg-green-50'}`}
+                  >
+                    {a.published ? 'Снять' : 'Опубликовать'}
+                  </button>
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+};
+
 // ---------- MAIN CABINET ----------
 const Cabinet = () => {
   const navigate = useNavigate();
@@ -640,6 +787,7 @@ const Cabinet = () => {
             <TabsTrigger value="leads"><Icon name="Inbox" size={15} className="mr-1" />Заявки {stats.leads > 0 && <span className="ml-1 rounded-full bg-gold text-gold-foreground text-xs px-1.5">{stats.leads}</span>}</TabsTrigger>
             <TabsTrigger value="profile"><Icon name="Building2" size={15} className="mr-1" />Профиль компании</TabsTrigger>
             <TabsTrigger value="premium"><Icon name="Sparkles" size={15} className="mr-1" />Премиум</TabsTrigger>
+            <TabsTrigger value="blog"><Icon name="Newspaper" size={15} className="mr-1" />Блог</TabsTrigger>
           </TabsList>
 
           <div className="mt-6">
@@ -676,6 +824,9 @@ const Cabinet = () => {
                 premium={premium}
                 onBuy={(plan) => { setPremium({ plan, status: 'pending' }); }}
               />
+            </TabsContent>
+            <TabsContent value="blog">
+              <BlogTab navigate={navigate} />
             </TabsContent>
           </div>
         </Tabs>

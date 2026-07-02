@@ -69,7 +69,7 @@ const AuthScreen = ({ onAuth }: { onAuth: () => void }) => {
               <Icon name="Container" size={20} />
             </div>
             <span className="font-display text-xl font-700 text-navy">
-              Sino<span className="text-gold">Bridge</span>
+              Chinese<span className="text-gold">Bridge</span>
             </span>
           </div>
           <h1 className="mt-4 font-display text-2xl font-700 text-navy">
@@ -246,7 +246,7 @@ const Cabinet = () => {
               <Icon name="Container" size={20} />
             </div>
             <span className="font-display text-xl font-700 text-navy">
-              Sino<span className="text-gold">Bridge</span>
+              Chinese<span className="text-gold">Bridge</span>
             </span>
           </button>
           <div className="flex items-center gap-3">

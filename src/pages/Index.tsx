@@ -159,7 +159,7 @@ const Index = () => {
               <Icon name="Container" size={20} />
             </div>
             <span className="font-display text-xl font-700 text-navy">
-              Sino<span className="text-gold">Bridge</span>
+              Chinese<span className="text-gold">Bridge</span>
             </span>
           </div>
           <nav className="hidden items-center gap-6 lg:flex">
@@ -585,7 +585,7 @@ const Index = () => {
                 <Icon name="Container" size={20} />
               </div>
               <span className="font-display text-xl font-700 text-white">
-                Sino<span className="text-gold">Bridge</span>
+                Chinese<span className="text-gold">Bridge</span>
               </span>
             </div>
             <nav className="flex flex-wrap gap-x-6 gap-y-2 text-sm">

@@ -1,0 +1,23 @@
+{
+  "tests": [
+    {
+      "name": "OPTIONS CORS preflight",
+      "method": "OPTIONS",
+      "path": "/",
+      "expectedStatus": 200
+    },
+    {
+      "name": "Login with wrong credentials",
+      "method": "POST",
+      "path": "/?action=login",
+      "body": {"email": "nobody@test.com", "password": "wrong"},
+      "expectedStatus": 401
+    },
+    {
+      "name": "Dashboard without token",
+      "method": "GET",
+      "path": "/?action=dashboard",
+      "expectedStatus": 401
+    }
+  ]
+}

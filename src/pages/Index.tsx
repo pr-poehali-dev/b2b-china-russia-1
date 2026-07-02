@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import Icon from '@/components/ui/icon';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -146,6 +147,7 @@ const tagColor: Record<string, string> = {
 
 const Index = () => {
   const [activeProvince, setActiveProvince] = useState('Все провинции');
+  const navigate = useNavigate();
 
   return (
     <div className="min-h-screen bg-background text-foreground">
@@ -174,10 +176,17 @@ const Index = () => {
             ))}
           </nav>
           <div className="flex items-center gap-2">
-            <Button variant="ghost" className="hidden sm:inline-flex">
+            <Button
+              variant="ghost"
+              className="hidden sm:inline-flex"
+              onClick={() => navigate('/cabinet')}
+            >
               Войти
             </Button>
-            <Button className="bg-gold text-gold-foreground hover:bg-gold/90">
+            <Button
+              className="bg-gold text-gold-foreground hover:bg-gold/90"
+              onClick={() => navigate('/cabinet')}
+            >
               Кабинет продавца
             </Button>
           </div>
@@ -380,7 +389,10 @@ const Index = () => {
                 </div>
               ))}
             </div>
-            <Button className="mt-8 bg-navy text-white hover:bg-navy-deep">
+            <Button
+              className="mt-8 bg-navy text-white hover:bg-navy-deep"
+              onClick={() => navigate('/cabinet')}
+            >
               Открыть кабинет продавца
             </Button>
           </div>

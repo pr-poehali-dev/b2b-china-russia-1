@@ -547,7 +547,11 @@ const ReelsTab = ({ media, onAdded, onDeleted }: { media: Media[]; onAdded: (m: 
           </div>
           <div>
             <p className="font-600 text-navy">Загрузить видео-рилс</p>
-            <p className="text-sm text-muted-foreground">MP4, MOV, WEBM · вертикальный формат 9:16 · любой размер</p>
+            <p className="text-sm text-muted-foreground">MP4, MOV, WEBM · вертикальный формат 9:16</p>
+            <div className="flex items-center gap-1.5 rounded-lg bg-gold/10 px-3 py-1.5 text-xs text-gold">
+              <Icon name="Info" size={13} />
+              Максимальный размер файла — 7 МБ. Для сжатия используйте <a href="https://www.veed.io/compress-video" target="_blank" rel="noreferrer" className="underline">veed.io</a> или HandBrake.
+            </div>
           </div>
           <Input
             placeholder="Подпись к видео (необязательно)"

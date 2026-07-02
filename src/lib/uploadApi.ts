@@ -26,69 +26,32 @@ export async function uploadPhoto(file: File): Promise<string> {
   return data.url as string;
 }
 
-const CHUNK_SIZE = 5 * 1024 * 1024; // 5 MB — минимальный размер части для S3 multipart
-
-function readChunkAsBase64(file: File, start: number, end: number): Promise<string> {
-  return new Promise((resolve, reject) => {
-    const slice = file.slice(start, end);
-    const reader = new FileReader();
-    reader.onload = () => resolve((reader.result as string).split(',')[1]);
-    reader.onerror = reject;
-    reader.readAsDataURL(slice);
-  });
-}
-
-async function callUpload(action: string, body: unknown) {
-  const res = await fetch(`${BASE}?action=${action}`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', 'X-Auth-Token': getToken() },
-    body: JSON.stringify(body),
-  });
-  const data = await res.json();
-  if (!res.ok) throw new Error(data.error || `Ошибка: ${action}`);
-  return data;
-}
+const MAX_VIDEO_MB = 7;
+const MAX_VIDEO_BYTES = MAX_VIDEO_MB * 1024 * 1024;
 
 export async function uploadVideo(
   file: File,
   onProgress?: (pct: number) => void
 ): Promise<string> {
-  const contentType = file.type || 'video/mp4';
-
-  // 1. Инициализируем multipart upload
-  const { upload_id, key, cdn_url } = await callUpload('video_init', { content_type: contentType });
-
-  const parts: { PartNumber: number; ETag: string }[] = [];
-  const totalChunks = Math.ceil(file.size / CHUNK_SIZE);
-
-  try {
-    for (let i = 0; i < totalChunks; i++) {
-      const start = i * CHUNK_SIZE;
-      const end = Math.min(start + CHUNK_SIZE, file.size);
-      const chunk = await readChunkAsBase64(file, start, end);
-
-      // 2. Загружаем каждый чанк через бэкенд
-      const { etag } = await callUpload('video_chunk', {
-        key,
-        upload_id,
-        part_number: i + 1,
-        chunk,
-      });
-
-      parts.push({ PartNumber: i + 1, ETag: etag });
-      if (onProgress) onProgress(Math.round(((i + 1) / totalChunks) * 95));
-    }
-
-    // 3. Завершаем multipart upload
-    await callUpload('video_complete', { key, upload_id, parts });
-    if (onProgress) onProgress(100);
-    return cdn_url as string;
-
-  } catch (err) {
-    // Отменяем при ошибке
-    await callUpload('video_abort', { key, upload_id }).catch(() => {});
-    throw err;
+  if (file.size > MAX_VIDEO_BYTES) {
+    throw new Error(`Файл ${(file.size / 1024 / 1024).toFixed(1)} МБ превышает лимит ${MAX_VIDEO_MB} МБ. Сожмите видео или выберите файл меньшего размера.`);
   }
+
+  if (onProgress) onProgress(10);
+
+  const b64 = await toBase64(file);
+  if (onProgress) onProgress(50);
+
+  const res = await fetch(`${BASE}?action=video_upload`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'X-Auth-Token': getToken() },
+    body: JSON.stringify({ file: b64, content_type: file.type || 'video/mp4' }),
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error || 'Ошибка загрузки видео');
+
+  if (onProgress) onProgress(100);
+  return data.url as string;
 }
 
 export async function importExcel(file: File): Promise<{ imported: unknown[]; count: number; errors: string[] }> {

@@ -185,53 +185,26 @@ def handler(event: dict, context) -> dict:
             'errors': errors,
         })
 
-    # --- UPLOAD VIDEO (чанками через бэкенд в S3) ---
-    # Шаг 1: init — создать multipart upload, вернуть upload_id и key
-    if action == 'video_init':
+    # --- UPLOAD VIDEO (прямой put_object, лимит ~7 МБ base64) ---
+    if action == 'video_upload':
+        file_b64 = body.get('file')
         content_type = body.get('content_type', 'video/mp4')
+        if not file_b64:
+            return _resp(400, {'error': 'Нет файла'})
+        try:
+            file_bytes = base64.b64decode(file_b64)
+        except Exception:
+            return _resp(400, {'error': 'Неверный base64'})
+        max_bytes = 7 * 1024 * 1024
+        if len(file_bytes) > max_bytes:
+            return _resp(413, {'error': f'Файл слишком большой: {len(file_bytes)//1024//1024} МБ. Максимум 7 МБ.'})
         ext_map = {
             'video/mp4': 'mp4', 'video/quicktime': 'mov',
             'video/x-msvideo': 'avi', 'video/webm': 'webm', 'video/mpeg': 'mpg',
         }
         ext = ext_map.get(content_type, 'mp4')
         key = f"media/{seller_id}/videos/{uuid.uuid4().hex}.{ext}"
-        resp = s3.create_multipart_upload(Bucket='files', Key=key, ContentType=content_type)
-        return _resp(200, {'upload_id': resp['UploadId'], 'key': key, 'cdn_url': _cdn(key)})
-
-    # Шаг 2: chunk — загрузить один чанк (base64) и получить ETag
-    if action == 'video_chunk':
-        key = body.get('key')
-        upload_id = body.get('upload_id')
-        part_number = int(body.get('part_number', 1))
-        chunk_b64 = body.get('chunk')
-        if not key or not upload_id or not chunk_b64:
-            return _resp(400, {'error': 'Нет key, upload_id или chunk'})
-        chunk_bytes = base64.b64decode(chunk_b64)
-        resp = s3.upload_part(
-            Bucket='files', Key=key,
-            UploadId=upload_id, PartNumber=part_number, Body=chunk_bytes,
-        )
-        return _resp(200, {'etag': resp['ETag'], 'part_number': part_number})
-
-    # Шаг 3: complete — завершить multipart upload
-    if action == 'video_complete':
-        key = body.get('key')
-        upload_id = body.get('upload_id')
-        parts = body.get('parts', [])  # [{'PartNumber': 1, 'ETag': '...'}, ...]
-        if not key or not upload_id or not parts:
-            return _resp(400, {'error': 'Нет key, upload_id или parts'})
-        s3.complete_multipart_upload(
-            Bucket='files', Key=key, UploadId=upload_id,
-            MultipartUpload={'Parts': parts},
-        )
-        return _resp(200, {'cdn_url': _cdn(key)})
-
-    # Шаг abort — отменить при ошибке
-    if action == 'video_abort':
-        key = body.get('key')
-        upload_id = body.get('upload_id')
-        if key and upload_id:
-            s3.abort_multipart_upload(Bucket='files', Key=key, UploadId=upload_id)
-        return _resp(200, {'ok': True})
+        s3.put_object(Bucket='files', Key=key, Body=file_bytes, ContentType=content_type)
+        return _resp(200, {'url': _cdn(key)})
 
     return _resp(404, {'error': 'Неизвестное действие'})

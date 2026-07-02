@@ -14,10 +14,10 @@
       "expectedStatus": 401
     },
     {
-      "name": "Video init without token",
+      "name": "Video upload without token",
       "method": "POST",
-      "path": "/?action=video_init",
-      "body": {"content_type": "video/mp4"},
+      "path": "/?action=video_upload",
+      "body": {"file": "aGVsbG8=", "content_type": "video/mp4"},
       "expectedStatus": 401
     }
   ]

@@ -596,9 +596,7 @@ const Index = () => {
               ))}
             </nav>
           </div>
-          <div className="mt-8 border-t border-white/10 pt-6 text-sm">
-            © 2026 SinoBridge — B2B платформа поставщиков Китай — Россия
-          </div>
+          <div className="mt-8 border-t border-white/10 pt-6 text-sm">© 2026 ChineseBridge.ru — B2B платформа поставщиков Китай — Россия</div>
         </div>
       </footer>
     </div>

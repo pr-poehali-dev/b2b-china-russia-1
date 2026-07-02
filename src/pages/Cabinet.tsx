@@ -508,6 +508,135 @@ const MediaTab = ({ media, onAdded, onDeleted }: { media: Media[]; onAdded: (m: 
   );
 };
 
+// ---------- REELS TAB ----------
+const ReelsTab = ({ media, onAdded, onDeleted }: { media: Media[]; onAdded: (m: Media) => void; onDeleted: (id: number) => void }) => {
+  const [caption, setCaption] = useState('');
+  const [videoProgress, setVideoProgress] = useState<number | null>(null);
+  const [uploading, setUploading] = useState(false);
+  const [playing, setPlaying] = useState<number | null>(null);
+  const videoRef = useRef<HTMLInputElement>(null);
+
+  const videos = media.filter(m => m.type === 'video');
+
+  const handleVideo = async (files: FileList | null) => {
+    if (!files?.[0]) return;
+    setUploading(true);
+    setVideoProgress(0);
+    try {
+      const url = await uploadVideo(files[0], pct => setVideoProgress(pct));
+      const res = await api.addMedia({ url, type: 'video', caption });
+      onAdded(res.media);
+      toast({ title: 'Видео загружено!' });
+      setCaption('');
+    } catch (e) { toast({ title: 'Ошибка', description: (e as Error).message, variant: 'destructive' }); }
+    finally { setUploading(false); setVideoProgress(null); if (videoRef.current) videoRef.current.value = ''; }
+  };
+
+  const del = async (id: number) => {
+    try { await api.deleteMedia(id); onDeleted(id); }
+    catch (e) { toast({ title: 'Ошибка', description: (e as Error).message, variant: 'destructive' }); }
+  };
+
+  return (
+    <div>
+      {/* Upload zone */}
+      <div className="mb-6 rounded-2xl border-2 border-dashed border-border bg-secondary/30 p-6 hover:border-gold transition-colors">
+        <div className="flex flex-col items-center gap-3 text-center">
+          <div className="flex h-16 w-16 items-center justify-center rounded-full bg-navy/10">
+            <Icon name="Film" size={32} className="text-navy" />
+          </div>
+          <div>
+            <p className="font-600 text-navy">Загрузить видео-рилс</p>
+            <p className="text-sm text-muted-foreground">MP4, MOV, WEBM · вертикальный формат 9:16 · любой размер</p>
+          </div>
+          <Input
+            placeholder="Подпись к видео (необязательно)"
+            value={caption}
+            onChange={e => setCaption(e.target.value)}
+            className="max-w-xs"
+          />
+          {videoProgress !== null && (
+            <div className="w-full max-w-xs">
+              <div className="mb-1 flex justify-between text-xs text-muted-foreground">
+                <span>Загружается...</span>
+                <span className="font-600 text-navy">{videoProgress}%</span>
+              </div>
+              <div className="h-2 w-full overflow-hidden rounded-full bg-border">
+                <div className="h-full rounded-full bg-gold transition-all duration-300" style={{ width: `${videoProgress}%` }} />
+              </div>
+            </div>
+          )}
+          <input ref={videoRef} type="file" accept="video/*" className="hidden" onChange={e => handleVideo(e.target.files)} />
+          <Button
+            className="bg-gold text-gold-foreground hover:bg-gold/90 px-8"
+            disabled={uploading}
+            onClick={() => videoRef.current?.click()}
+          >
+            {videoProgress !== null
+              ? <><Icon name="Loader2" size={16} className="mr-2 animate-spin" />Загрузка {videoProgress}%</>
+              : <><Icon name="Upload" size={16} className="mr-2" />Выбрать видео</>}
+          </Button>
+        </div>
+      </div>
+
+      {/* Reels grid */}
+      {videos.length === 0 ? (
+        <Card className="border-dashed">
+          <CardContent className="flex flex-col items-center gap-2 py-14 text-center">
+            <Icon name="Clapperboard" size={44} className="text-muted-foreground" />
+            <p className="font-600 text-navy">Видео-рилсы не добавлены</p>
+            <p className="text-sm text-muted-foreground">Покажите производство, процессы, качество товаров</p>
+          </CardContent>
+        </Card>
+      ) : (
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4">
+          {videos.map((m) => (
+            <div key={m.id} className="group relative overflow-hidden rounded-2xl bg-black" style={{ aspectRatio: '9/16' }}>
+              {playing === m.id ? (
+                <video
+                  src={m.url}
+                  className="h-full w-full object-cover"
+                  controls
+                  autoPlay
+                  onEnded={() => setPlaying(null)}
+                />
+              ) : (
+                <>
+                  <video
+                    src={m.url + '#t=0.5'}
+                    className="h-full w-full object-cover opacity-80"
+                    preload="metadata"
+                    muted
+                  />
+                  <div className="absolute inset-0 flex flex-col items-center justify-center gap-2">
+                    <button
+                      onClick={() => setPlaying(m.id)}
+                      className="flex h-14 w-14 items-center justify-center rounded-full bg-white/20 backdrop-blur-sm border border-white/40 transition-transform hover:scale-110"
+                    >
+                      <Icon name="Play" size={24} className="text-white ml-1" />
+                    </button>
+                  </div>
+                  {m.caption && (
+                    <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 p-3">
+                      <p className="text-xs text-white line-clamp-2">{m.caption}</p>
+                    </div>
+                  )}
+                  <button
+                    className="absolute right-2 top-2 rounded-full bg-black/50 p-1.5 opacity-0 transition-opacity group-hover:opacity-100"
+                    onClick={() => del(m.id)}
+                  >
+                    <Icon name="Trash2" size={14} className="text-white" />
+                  </button>
+                </>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+};
+
 // ---------- CERTS TAB ----------
 const CertsTab = ({ certs, onAdded, onDeleted }: { certs: Certificate[]; onAdded: (c: Certificate) => void; onDeleted: (id: number) => void }) => {
   const [open, setOpen] = useState(false);
@@ -642,7 +771,20 @@ const ProfileTab = ({ seller, onSaved }: { seller: Seller; onSaved: (s: Seller) 
     employees: seller.employees || '',
   });
   const [loading, setLoading] = useState(false);
+  const [logoUploading, setLogoUploading] = useState(false);
+  const logoInputRef = useRef<HTMLInputElement>(null);
   const set = (k: string, v: string | number) => setForm((f) => ({ ...f, [k]: v }));
+
+  const handleLogoFile = async (files: FileList | null) => {
+    if (!files?.[0]) return;
+    setLogoUploading(true);
+    try {
+      const url = await uploadPhoto(files[0]);
+      set('logo_url', url);
+      toast({ title: 'Логотип загружен' });
+    } catch (e) { toast({ title: 'Ошибка', description: (e as Error).message, variant: 'destructive' }); }
+    finally { setLogoUploading(false); }
+  };
 
   const save = async () => {
     setLoading(true);
@@ -657,17 +799,48 @@ const ProfileTab = ({ seller, onSaved }: { seller: Seller; onSaved: (s: Seller) 
   return (
     <div className="space-y-6 max-w-2xl">
       <Card className="border-border">
-        <CardHeader><CardTitle className="font-display text-lg text-navy">Информация о компании</CardTitle></CardHeader>
+        <CardHeader><CardTitle className="font-display text-lg text-navy">Логотип компании</CardTitle></CardHeader>
+        <CardContent>
+          <div className="flex items-center gap-5">
+            <div className="flex h-24 w-24 shrink-0 items-center justify-center overflow-hidden rounded-2xl border-2 border-border bg-secondary">
+              {form.logo_url
+                ? <img src={form.logo_url} alt="Лого" className="h-full w-full object-cover" onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} />
+                : <Icon name="Building2" size={32} className="text-muted-foreground" />}
+            </div>
+            <div className="space-y-2">
+              <p className="text-sm text-muted-foreground">JPG, PNG · рекомендуется квадрат</p>
+              <input ref={logoInputRef} type="file" accept="image/*" className="hidden" onChange={e => handleLogoFile(e.target.files)} />
+              <Button
+                variant="outline"
+                className="border-navy text-navy"
+                disabled={logoUploading}
+                onClick={() => logoInputRef.current?.click()}
+              >
+                {logoUploading
+                  ? <><Icon name="Loader2" size={15} className="mr-1 animate-spin" />Загрузка...</>
+                  : <><Icon name="Upload" size={15} className="mr-1" />Загрузить файлом</>}
+              </Button>
+              {form.logo_url && (
+                <button className="block text-xs text-muted-foreground hover:text-destructive" onClick={() => set('logo_url', '')}>
+                  Удалить лого
+                </button>
+              )}
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card className="border-border">
+        <CardHeader><CardTitle className="font-display text-lg text-navy">Описание компании</CardTitle></CardHeader>
         <CardContent className="space-y-3">
-          <Input placeholder="Ссылка на логотип" value={form.logo_url || ''} onChange={(e) => set('logo_url', e.target.value)} />
-          <Textarea placeholder="Описание компании" value={form.description || ''} onChange={(e) => set('description', e.target.value)} className="min-h-24" />
+          <Textarea placeholder="Расскажите о компании: специализация, опыт, преимущества..." value={form.description || ''} onChange={(e) => set('description', e.target.value)} className="min-h-32" />
           <div className="grid grid-cols-2 gap-3">
             <select className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm" value={form.province || ''} onChange={(e) => set('province', e.target.value)}>
-              <option value="">Провинция</option>
+              <option value="">Провинция Китая</option>
               {PROVINCES.map((p) => <option key={p}>{p}</option>)}
             </select>
             <select className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm" value={form.category || ''} onChange={(e) => set('category', e.target.value)}>
-              <option value="">Категория</option>
+              <option value="">Категория товаров</option>
               {CATEGORIES.map((c) => <option key={c}>{c}</option>)}
             </select>
           </div>
@@ -675,29 +848,38 @@ const ProfileTab = ({ seller, onSaved }: { seller: Seller; onSaved: (s: Seller) 
             <Input placeholder="Год основания" type="number" value={form.founded_year || ''} onChange={(e) => set('founded_year', parseInt(e.target.value) || 0)} />
             <Input placeholder="Сотрудников (напр. 50–200)" value={form.employees || ''} onChange={(e) => set('employees', e.target.value)} />
           </div>
-          <Input placeholder="Сайт" value={form.website || ''} onChange={(e) => set('website', e.target.value)} />
+          <Input placeholder="Сайт компании" value={form.website || ''} onChange={(e) => set('website', e.target.value)} />
         </CardContent>
       </Card>
 
       <Card className="border-border">
         <CardHeader><CardTitle className="font-display text-lg text-navy">Контакты для покупателей</CardTitle></CardHeader>
         <CardContent className="space-y-3">
-          <div className="flex items-center gap-2">
-            <span className="text-lg">💬</span>
-            <Input placeholder="WeChat ID" value={form.wechat || ''} onChange={(e) => set('wechat', e.target.value)} />
+          <div className="flex items-center gap-3 rounded-lg border border-border p-3">
+            <span className="text-2xl">💬</span>
+            <div className="flex-1">
+              <div className="text-xs text-muted-foreground mb-1">WeChat ID</div>
+              <Input placeholder="Ваш WeChat" value={form.wechat || ''} onChange={(e) => set('wechat', e.target.value)} className="border-0 p-0 h-auto focus-visible:ring-0" />
+            </div>
           </div>
-          <div className="flex items-center gap-2">
-            <span className="text-lg">📱</span>
-            <Input placeholder="WhatsApp (с кодом страны, напр. +86...)" value={form.whatsapp || ''} onChange={(e) => set('whatsapp', e.target.value)} />
+          <div className="flex items-center gap-3 rounded-lg border border-border p-3">
+            <span className="text-2xl">📱</span>
+            <div className="flex-1">
+              <div className="text-xs text-muted-foreground mb-1">WhatsApp</div>
+              <Input placeholder="+86 xxx xxxx xxxx" value={form.whatsapp || ''} onChange={(e) => set('whatsapp', e.target.value)} className="border-0 p-0 h-auto focus-visible:ring-0" />
+            </div>
           </div>
-          <div className="flex items-center gap-2">
-            <span className="text-lg">✈️</span>
-            <Input placeholder="Telegram (@username)" value={form.telegram || ''} onChange={(e) => set('telegram', e.target.value)} />
+          <div className="flex items-center gap-3 rounded-lg border border-border p-3">
+            <span className="text-2xl">✈️</span>
+            <div className="flex-1">
+              <div className="text-xs text-muted-foreground mb-1">Telegram</div>
+              <Input placeholder="@username" value={form.telegram || ''} onChange={(e) => set('telegram', e.target.value)} className="border-0 p-0 h-auto focus-visible:ring-0" />
+            </div>
           </div>
         </CardContent>
       </Card>
 
-      <Button className="bg-gold text-gold-foreground hover:bg-gold/90" disabled={loading} onClick={save}>
+      <Button className="bg-gold text-gold-foreground hover:bg-gold/90 w-full sm:w-auto" disabled={loading} onClick={save}>
         {loading ? 'Сохранение...' : 'Сохранить профиль'}
       </Button>
     </div>
@@ -1105,11 +1287,10 @@ const Cabinet = () => {
           </div>
         </div>
 
-        <div className="mb-8 grid grid-cols-3 gap-4">
+        <div className="mb-8 grid grid-cols-2 gap-4 sm:grid-cols-2">
           {[
             { v: loading ? '—' : stats.views, l: 'Просмотры', icon: 'Eye' },
             { v: loading ? '—' : stats.leads, l: 'Заявки', icon: 'MessageSquare' },
-            { v: loading ? '—' : stats.products, l: 'Товары', icon: 'Package' },
           ].map((m) => (
             <Card key={m.l} className="border-border">
               <CardContent className="flex items-center gap-4 p-5">
@@ -1125,28 +1306,23 @@ const Cabinet = () => {
           ))}
         </div>
 
-        <Tabs defaultValue="products">
+        <Tabs defaultValue="profile">
           <TabsList className="flex-wrap h-auto gap-1">
-            <TabsTrigger value="products"><Icon name="Package" size={15} className="mr-1" />Товары</TabsTrigger>
-            <TabsTrigger value="media"><Icon name="Image" size={15} className="mr-1" />Фото и видео</TabsTrigger>
+            <TabsTrigger value="profile"><Icon name="Building2" size={15} className="mr-1" />Профиль компании</TabsTrigger>
+            <TabsTrigger value="reels"><Icon name="Clapperboard" size={15} className="mr-1" />Видео-рилсы</TabsTrigger>
             <TabsTrigger value="certs"><Icon name="Award" size={15} className="mr-1" />Сертификаты</TabsTrigger>
             <TabsTrigger value="leads"><Icon name="Inbox" size={15} className="mr-1" />Заявки {stats.leads > 0 && <span className="ml-1 rounded-full bg-gold text-gold-foreground text-xs px-1.5">{stats.leads}</span>}</TabsTrigger>
-            <TabsTrigger value="profile"><Icon name="Building2" size={15} className="mr-1" />Профиль компании</TabsTrigger>
             <TabsTrigger value="premium"><Icon name="Sparkles" size={15} className="mr-1" />Премиум</TabsTrigger>
             <TabsTrigger value="blog"><Icon name="Newspaper" size={15} className="mr-1" />Блог</TabsTrigger>
             <TabsTrigger value="contacts"><Icon name="MessageCircle" size={15} className="mr-1" />Заявки с сайта</TabsTrigger>
           </TabsList>
 
           <div className="mt-6">
-            <TabsContent value="products">
-              <ProductsTab
-                products={products}
-                onAdded={(p) => { setProducts((ps) => [p, ...ps]); setStats((s) => ({ ...s, products: s.products + 1 })); }}
-                onDeleted={(id) => { setProducts((ps) => ps.filter((p) => p.id !== id)); setStats((s) => ({ ...s, products: Math.max(0, s.products - 1) })); }}
-              />
+            <TabsContent value="profile">
+              {seller && <ProfileTab seller={seller} onSaved={setSeller} />}
             </TabsContent>
-            <TabsContent value="media">
-              <MediaTab
+            <TabsContent value="reels">
+              <ReelsTab
                 media={media}
                 onAdded={(m) => setMedia((ms) => [m, ...ms])}
                 onDeleted={(id) => setMedia((ms) => ms.filter((m) => m.id !== id))}
@@ -1161,9 +1337,6 @@ const Cabinet = () => {
             </TabsContent>
             <TabsContent value="leads">
               <LeadsTab leads={leads} onChange={changeLead} />
-            </TabsContent>
-            <TabsContent value="profile">
-              {seller && <ProfileTab seller={seller} onSaved={setSeller} />}
             </TabsContent>
             <TabsContent value="premium">
               <PremiumTab

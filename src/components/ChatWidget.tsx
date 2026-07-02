@@ -128,7 +128,7 @@ const ChatWidget = () => {
       {/* Floating button */}
       <button
         onClick={() => setOpen(o => !o)}
-        className="fixed bottom-6 right-6 z-50 flex h-14 w-14 items-center justify-center rounded-full bg-navy shadow-lg hover:bg-navy-deep transition-colors"
+        className="fixed bottom-6 right-6 z-[9999] flex h-14 w-14 items-center justify-center rounded-full bg-navy shadow-lg hover:bg-navy-deep transition-colors"
         style={{ boxShadow: '0 4px 24px hsl(218 62% 18% / 0.35)' }}
       >
         {open
@@ -144,7 +144,7 @@ const ChatWidget = () => {
 
       {/* Chat window */}
       {open && (
-        <div className="fixed bottom-24 right-6 z-50 flex w-80 flex-col overflow-hidden rounded-2xl border border-border bg-background shadow-2xl"
+        <div className="fixed bottom-24 right-6 z-[9998] flex w-80 flex-col overflow-hidden rounded-2xl border border-border bg-background shadow-2xl"
           style={{ height: '480px', boxShadow: '0 8px 40px hsl(218 62% 18% / 0.25)' }}>
 
           {/* Header */}

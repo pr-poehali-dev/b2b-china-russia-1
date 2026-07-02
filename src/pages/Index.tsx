@@ -21,13 +21,13 @@ const FACTORY_IMG =
   'https://cdn.poehali.dev/projects/a67ff9c5-8157-472c-832f-296b77b78a02/files/2049d829-79a7-4c2f-a5d6-2d4802b8c55d.jpg';
 
 const NAV = [
-  'Главная',
-  'Поставщики',
-  'Товары',
-  'Производители',
-  'Логистика',
-  'Новости',
-  'Контакты',
+  { label: 'Главная', href: '/' },
+  { label: 'Поставщики', href: '/suppliers' },
+  { label: 'Товары', href: '/suppliers' },
+  { label: 'Производители', href: '/suppliers?plan=Gold' },
+  { label: 'Логистика', href: '#logistics' },
+  { label: 'Новости', href: '#news' },
+  { label: 'Контакты', href: '#contacts' },
 ];
 
 const STATS = [
@@ -169,13 +169,14 @@ const Index = () => {
           <nav className="hidden items-center gap-6 lg:flex">
             {NAV.map((item, i) => (
               <a
-                key={item}
-                href="#"
+                key={item.label}
+                href={item.href}
+                onClick={item.href.startsWith('/') ? (e) => { e.preventDefault(); navigate(item.href); } : undefined}
                 className={`text-sm font-500 transition-colors hover:text-gold ${
                   i === 0 ? 'text-navy' : 'text-muted-foreground'
                 }`}
               >
-                {item}
+                {item.label}
               </a>
             ))}
           </nav>
@@ -258,7 +259,7 @@ const Index = () => {
               Поиск по категориям
             </h2>
           </div>
-          <Button variant="outline" className="border-navy text-navy">
+          <Button variant="outline" className="border-navy text-navy" onClick={() => navigate('/suppliers')}>
             Все категории
             <Icon name="ArrowRight" size={16} className="ml-1" />
           </Button>
@@ -268,6 +269,7 @@ const Index = () => {
             <Card
               key={c.name}
               className="hover-lift cursor-pointer border-border"
+              onClick={() => navigate(`/suppliers?category=${encodeURIComponent(c.name)}`)}
             >
               <CardContent className="flex flex-col gap-3 p-6">
                 <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-secondary text-navy">
@@ -288,11 +290,17 @@ const Index = () => {
       {/* Suppliers */}
       <section className="bg-secondary/50 py-20">
         <div className="container">
-          <div className="mb-8">
-            <p className="font-500 text-gold">Каталог поставщиков</p>
-            <h2 className="font-display text-3xl font-700 text-navy md:text-4xl">
-              Проверенные производители
-            </h2>
+          <div className="mb-8 flex flex-wrap items-end justify-between gap-4">
+            <div>
+              <p className="font-500 text-gold">Каталог поставщиков</p>
+              <h2 className="font-display text-3xl font-700 text-navy md:text-4xl">
+                Проверенные производители
+              </h2>
+            </div>
+            <Button variant="outline" className="border-navy text-navy" onClick={() => navigate('/suppliers')}>
+              Все поставщики
+              <Icon name="ArrowRight" size={16} className="ml-1" />
+            </Button>
           </div>
 
           <div className="mb-8 flex flex-wrap gap-2">
@@ -595,8 +603,13 @@ const Index = () => {
             </div>
             <nav className="flex flex-wrap gap-x-6 gap-y-2 text-sm">
               {NAV.map((n) => (
-                <a key={n} href="#" className="hover:text-gold">
-                  {n}
+                <a
+                  key={n.label}
+                  href={n.href}
+                  onClick={n.href.startsWith('/') ? (e) => { e.preventDefault(); navigate(n.href); } : undefined}
+                  className="hover:text-gold"
+                >
+                  {n.label}
                 </a>
               ))}
             </nav>

@@ -12,7 +12,6 @@ import Blog from "./pages/Blog";
 import BlogArticle from "./pages/BlogArticle";
 import Logistics from "./pages/Logistics";
 import NotFound from "./pages/NotFound";
-import ChatWidget from "./components/ChatWidget";
 
 const queryClient = new QueryClient();
 
@@ -22,7 +21,6 @@ const App = () => (
       <Toaster />
       <Sonner />
       <BrowserRouter>
-        <ChatWidget />
         <Routes>
           <Route path="/" element={<Index />} />
           <Route path="/cabinet" element={<Cabinet />} />

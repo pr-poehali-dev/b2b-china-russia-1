@@ -31,7 +31,6 @@ import {
   type Stats,
 } from '@/lib/cabinetApi';
 import { blogApi, type Article } from '@/lib/blogApi';
-import { chatApi, type ChatSession, type ChatMessage } from '@/lib/chatApi';
 
 const CATEGORIES = ['Электроника', 'Текстиль и одежда', 'Товары для дома', 'Автозапчасти', 'Промоборудование', 'Упаковка'];
 const PROVINCES = ['Гуандун', 'Чжэцзян', 'Цзянсу', 'Шаньдун', 'Фуцзянь', 'Хэбэй', 'Шанхай', 'Пекин'];
@@ -681,147 +680,6 @@ const PremiumTab = ({ currentPlan, premium, onBuy }: { currentPlan: string; prem
   );
 };
 
-// ---------- CHAT ADMIN TAB ----------
-const ChatAdminTab = () => {
-  const [sessions, setSessions] = useState<ChatSession[]>([]);
-  const [selected, setSelected] = useState<ChatSession | null>(null);
-  const [messages, setMessages] = useState<ChatMessage[]>([]);
-  const [reply, setReply] = useState('');
-  const [loading, setLoading] = useState(true);
-  const [sending, setSending] = useState(false);
-  const bottomRef = useRef<HTMLDivElement>(null);
-
-  const loadSessions = () => {
-    chatApi.getSessions().then(d => setSessions(d.sessions || [])).finally(() => setLoading(false));
-  };
-
-  useEffect(() => { loadSessions(); const t = setInterval(loadSessions, 5000); return () => clearInterval(t); }, []);
-
-  const openSession = async (s: ChatSession) => {
-    setSelected(s);
-    const d = await chatApi.getSessionMessages(s.id);
-    setMessages(d.messages || []);
-    setTimeout(() => bottomRef.current?.scrollIntoView({ behavior: 'smooth' }), 100);
-  };
-
-  useEffect(() => {
-    if (!selected) return;
-    const t = setInterval(async () => {
-      const d = await chatApi.getSessionMessages(selected.id);
-      setMessages(d.messages || []);
-    }, 4000);
-    return () => clearInterval(t);
-  }, [selected]);
-
-  const sendReply = async () => {
-    if (!reply.trim() || !selected) return;
-    setSending(true);
-    await chatApi.reply(selected.id, reply);
-    setReply('');
-    const d = await chatApi.getSessionMessages(selected.id);
-    setMessages(d.messages || []);
-    setTimeout(() => bottomRef.current?.scrollIntoView({ behavior: 'smooth' }), 100);
-    setSending(false);
-  };
-
-  const closeSession = async (id: number) => {
-    await chatApi.close(id);
-    setSessions(ss => ss.map(s => s.id === id ? { ...s, status: 'closed' } : s));
-    if (selected?.id === id) setSelected(s => s ? { ...s, status: 'closed' } : null);
-  };
-
-  if (loading) return <div className="space-y-2">{Array.from({length:3}).map((_,i) => <div key={i} className="h-16 animate-pulse rounded-xl bg-secondary"/>)}</div>;
-
-  return (
-    <div className="grid gap-4 lg:grid-cols-5" style={{ height: '500px' }}>
-      {/* Sessions list */}
-      <div className="lg:col-span-2 overflow-y-auto space-y-2 border-r border-border pr-3">
-        {sessions.length === 0 ? (
-          <div className="flex flex-col items-center gap-2 py-10 text-center">
-            <Icon name="MessageCircle" size={36} className="text-muted-foreground" />
-            <p className="text-sm text-muted-foreground">Чатов пока нет</p>
-          </div>
-        ) : sessions.map(s => (
-          <button key={s.id} onClick={() => openSession(s)}
-            className={`w-full rounded-xl border p-3 text-left transition-colors hover:border-gold ${selected?.id === s.id ? 'border-gold bg-gold/5' : 'border-border'}`}>
-            <div className="flex items-center justify-between gap-2">
-              <div className="flex items-center gap-2">
-                <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-navy font-display font-700 text-sm text-white">
-                  {(s.visitor_name || 'Г')[0]}
-                </div>
-                <div className="min-w-0">
-                  <div className="truncate text-sm font-600 text-navy">{s.visitor_name || 'Гость'}</div>
-                  {s.last_text && <div className="truncate text-xs text-muted-foreground">{s.last_text}</div>}
-                </div>
-              </div>
-              <div className="shrink-0 text-right">
-                <div className={`rounded-full px-2 py-0.5 text-[10px] font-500 ${s.status === 'open' ? 'bg-green-100 text-green-700' : 'bg-secondary text-muted-foreground'}`}>
-                  {s.status === 'open' ? 'Открыт' : 'Закрыт'}
-                </div>
-                <div className="mt-0.5 text-[10px] text-muted-foreground">
-                  {new Date(s.last_message_at).toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' })}
-                </div>
-              </div>
-            </div>
-          </button>
-        ))}
-      </div>
-
-      {/* Chat view */}
-      <div className="lg:col-span-3 flex flex-col">
-        {!selected ? (
-          <div className="flex flex-1 items-center justify-center text-muted-foreground text-sm">
-            <div className="text-center"><Icon name="MessageSquare" size={32} className="mx-auto mb-2 text-muted-foreground" />Выберите чат слева</div>
-          </div>
-        ) : (
-          <>
-            <div className="mb-2 flex items-center justify-between">
-              <div>
-                <span className="font-600 text-navy">{selected.visitor_name}</span>
-                {selected.visitor_email && <span className="ml-2 text-sm text-muted-foreground">{selected.visitor_email}</span>}
-              </div>
-              {selected.status === 'open' && (
-                <Button size="sm" variant="outline" className="border-border text-muted-foreground text-xs" onClick={() => closeSession(selected.id)}>
-                  Закрыть чат
-                </Button>
-              )}
-            </div>
-            <div className="flex-1 overflow-y-auto rounded-xl border border-border bg-secondary/20 p-3 space-y-2">
-              {messages.map(m => (
-                <div key={m.id} className={`flex ${m.sender === 'visitor' ? 'justify-start' : 'justify-end'}`}>
-                  <div className={`max-w-[75%] rounded-2xl px-3 py-2 text-sm ${m.sender === 'visitor' ? 'bg-background border border-border' : m.sender === 'bot' ? 'bg-gold/10 border border-gold/20' : 'bg-navy text-white'}`}>
-                    {m.photo_url && <a href={m.photo_url} target="_blank" rel="noreferrer"><img src={m.photo_url} className="mb-1 max-h-32 rounded-lg" /></a>}
-                    {m.text && <p>{m.text}</p>}
-                    <p className={`mt-0.5 text-[10px] ${m.sender !== 'visitor' ? 'text-white/60' : 'text-muted-foreground'}`}>
-                      {m.sender === 'bot' ? '🤖 Бот · ' : m.sender === 'operator' ? 'Вы · ' : 'Гость · '}
-                      {new Date(m.created_at).toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' })}
-                    </p>
-                  </div>
-                </div>
-              ))}
-              <div ref={bottomRef} />
-            </div>
-            {selected.status === 'open' && (
-              <div className="mt-2 flex gap-2">
-                <Input
-                  placeholder="Ответить посетителю..."
-                  value={reply}
-                  onChange={e => setReply(e.target.value)}
-                  onKeyDown={e => { if (e.key === 'Enter') sendReply(); }}
-                  className="flex-1"
-                />
-                <Button className="bg-navy text-white hover:bg-navy-deep shrink-0" disabled={sending || !reply.trim()} onClick={sendReply}>
-                  {sending ? <Icon name="Loader2" size={16} className="animate-spin" /> : <Icon name="Send" size={16} />}
-                </Button>
-              </div>
-            )}
-          </>
-        )}
-      </div>
-    </div>
-  );
-};
-
 // ---------- CONTACT REQUESTS TAB ----------
 const CONTACT_STATUSES = ['Новая', 'В работе', 'Закрыта'];
 
@@ -1184,7 +1042,6 @@ const Cabinet = () => {
             <TabsTrigger value="premium"><Icon name="Sparkles" size={15} className="mr-1" />Премиум</TabsTrigger>
             <TabsTrigger value="blog"><Icon name="Newspaper" size={15} className="mr-1" />Блог</TabsTrigger>
             <TabsTrigger value="contacts"><Icon name="MessageCircle" size={15} className="mr-1" />Заявки с сайта</TabsTrigger>
-            <TabsTrigger value="chat"><Icon name="MessagesSquare" size={15} className="mr-1" />Чат</TabsTrigger>
           </TabsList>
 
           <div className="mt-6">
@@ -1227,9 +1084,6 @@ const Cabinet = () => {
             </TabsContent>
             <TabsContent value="contacts">
               <ContactRequestsTab />
-            </TabsContent>
-            <TabsContent value="chat">
-              <ChatAdminTab />
             </TabsContent>
           </div>
         </Tabs>

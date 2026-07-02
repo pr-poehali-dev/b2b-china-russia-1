@@ -30,6 +30,10 @@ export interface Product {
   price?: string;
   description?: string;
   image_url?: string;
+  photos?: string[];
+  sku?: string;
+  min_order?: string;
+  quantity?: string;
   status: string;
   views: number;
   created_at: string;

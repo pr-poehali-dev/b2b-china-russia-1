@@ -1,0 +1,17 @@
+{
+  "tests": [
+    {
+      "name": "OPTIONS CORS",
+      "method": "OPTIONS",
+      "path": "/",
+      "expectedStatus": 200
+    },
+    {
+      "name": "Upload without token",
+      "method": "POST",
+      "path": "/?action=photo",
+      "body": {"file": "aGVsbG8="},
+      "expectedStatus": 401
+    }
+  ]
+}

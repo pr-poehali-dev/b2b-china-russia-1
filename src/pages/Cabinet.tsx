@@ -1,5 +1,6 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { uploadPhoto, importExcel } from '@/lib/uploadApi';
 import Icon from '@/components/ui/icon';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -107,23 +108,60 @@ const AuthScreen = ({ onAuth }: { onAuth: () => void }) => {
 };
 
 // ---------- PRODUCTS TAB ----------
+const EMPTY_FORM = { name: '', category: '', price: '', description: '', sku: '', min_order: '', quantity: '' };
+
 const ProductsTab = ({ products, onAdded, onDeleted }: { products: Product[]; onAdded: (p: Product) => void; onDeleted: (id: number) => void }) => {
   const [open, setOpen] = useState(false);
-  const [form, setForm] = useState({ name: '', category: '', price: '', description: '', image_url: '' });
+  const [form, setForm] = useState(EMPTY_FORM);
+  const [photos, setPhotos] = useState<string[]>([]);
+  const [uploading, setUploading] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [importing, setImporting] = useState(false);
+  const [importMode, setImportMode] = useState(false);
+  const [lightbox, setLightbox] = useState<string | null>(null);
+  const photoInputRef = useRef<HTMLInputElement>(null);
+  const excelInputRef = useRef<HTMLInputElement>(null);
   const set = (k: string, v: string) => setForm((f) => ({ ...f, [k]: v }));
+
+  const handlePhotoFiles = async (files: FileList | null) => {
+    if (!files || !files.length) return;
+    setUploading(true);
+    try {
+      const urls: string[] = [];
+      for (let i = 0; i < Math.min(files.length, 8); i++) {
+        const url = await uploadPhoto(files[i]);
+        urls.push(url);
+      }
+      setPhotos((prev) => [...prev, ...urls].slice(0, 8));
+    } catch (e) { toast({ title: 'Ошибка загрузки фото', description: (e as Error).message, variant: 'destructive' }); }
+    finally { setUploading(false); }
+  };
 
   const submit = async () => {
     if (!form.name.trim()) { toast({ title: 'Укажите название', variant: 'destructive' }); return; }
     setLoading(true);
     try {
-      const res = await api.addProduct(form);
+      const res = await api.addProduct({ ...form, photos, image_url: photos[0] });
       onAdded(res.product);
       toast({ title: 'Товар добавлен' });
-      setForm({ name: '', category: '', price: '', description: '', image_url: '' });
-      setOpen(false);
+      setForm(EMPTY_FORM); setPhotos([]); setOpen(false);
     } catch (e) { toast({ title: 'Ошибка', description: (e as Error).message, variant: 'destructive' }); }
     finally { setLoading(false); }
+  };
+
+  const handleExcel = async (files: FileList | null) => {
+    if (!files?.[0]) return;
+    setImporting(true);
+    try {
+      const result = await importExcel(files[0]);
+      (result.imported as Product[]).forEach((p) => onAdded(p));
+      toast({
+        title: `Импортировано ${result.count} товаров`,
+        description: result.errors.length ? `Пропущено: ${result.errors.slice(0, 3).join('; ')}` : undefined,
+      });
+      setImportMode(false);
+    } catch (e) { toast({ title: 'Ошибка импорта', description: (e as Error).message, variant: 'destructive' }); }
+    finally { setImporting(false); if (excelInputRef.current) excelInputRef.current.value = ''; }
   };
 
   const del = async (id: number) => {
@@ -133,62 +171,165 @@ const ProductsTab = ({ products, onAdded, onDeleted }: { products: Product[]; on
 
   return (
     <div>
-      <div className="mb-4 flex justify-end">
-        <Dialog open={open} onOpenChange={setOpen}>
-          <DialogTrigger asChild>
-            <Button className="bg-gold text-gold-foreground hover:bg-gold/90"><Icon name="Plus" size={16} className="mr-1" />Добавить товар</Button>
-          </DialogTrigger>
-          <DialogContent>
-            <DialogHeader><DialogTitle className="font-display text-navy">Новый товар</DialogTitle></DialogHeader>
-            <div className="space-y-3">
-              <Input placeholder="Название товара *" value={form.name} onChange={(e) => set('name', e.target.value)} />
-              <select className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm" value={form.category} onChange={(e) => set('category', e.target.value)}>
-                <option value="">Категория</option>
-                {CATEGORIES.map((c) => <option key={c}>{c}</option>)}
-              </select>
-              <Input placeholder="Цена (напр. от $5/шт.)" value={form.price} onChange={(e) => set('price', e.target.value)} />
-              <Input placeholder="Ссылка на фото" value={form.image_url} onChange={(e) => set('image_url', e.target.value)} />
-              <Textarea placeholder="Описание" value={form.description} onChange={(e) => set('description', e.target.value)} />
-            </div>
-            <DialogFooter>
-              <Button className="bg-gold text-gold-foreground hover:bg-gold/90" disabled={loading} onClick={submit}>
-                {loading ? 'Сохранение...' : 'Сохранить'}
+      {/* Lightbox */}
+      {lightbox && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4" onClick={() => setLightbox(null)}>
+          <img src={lightbox} className="max-h-[90vh] max-w-[90vw] rounded-xl object-contain" />
+          <button className="absolute right-4 top-4 text-white"><Icon name="X" size={28} /></button>
+        </div>
+      )}
+
+      <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
+        <p className="text-sm text-muted-foreground">Добавляйте товары вручную или загружайте из Excel/CSV</p>
+        <div className="flex gap-2">
+          {/* Excel import */}
+          <input ref={excelInputRef} type="file" accept=".xlsx,.xls,.csv" className="hidden"
+            onChange={(e) => handleExcel(e.target.files)} />
+          <Button variant="outline" className="border-navy text-navy" disabled={importing}
+            onClick={() => excelInputRef.current?.click()}>
+            {importing
+              ? <><Icon name="Loader2" size={15} className="mr-1 animate-spin" />Импорт...</>
+              : <><Icon name="FileSpreadsheet" size={15} className="mr-1" />Excel / CSV</>}
+          </Button>
+          <Dialog open={open} onOpenChange={(v) => { setOpen(v); if (!v) { setForm(EMPTY_FORM); setPhotos([]); } }}>
+            <DialogTrigger asChild>
+              <Button className="bg-gold text-gold-foreground hover:bg-gold/90">
+                <Icon name="Plus" size={16} className="mr-1" />Добавить товар
               </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
+            </DialogTrigger>
+            <DialogContent className="max-w-xl">
+              <DialogHeader><DialogTitle className="font-display text-navy">Новый товар</DialogTitle></DialogHeader>
+              <div className="max-h-[65vh] overflow-y-auto space-y-3 pr-1">
+
+                {/* Photos upload */}
+                <div>
+                  <p className="mb-2 text-sm font-500 text-navy">Фотографии товара (до 8 шт.)</p>
+                  <div className="grid grid-cols-4 gap-2">
+                    {photos.map((url, i) => (
+                      <div key={i} className="group relative aspect-square overflow-hidden rounded-lg border border-border bg-secondary cursor-pointer"
+                        onClick={() => setLightbox(url)}>
+                        <img src={url} className="h-full w-full object-cover" />
+                        {i === 0 && <span className="absolute left-1 top-1 rounded bg-gold px-1 text-[10px] font-600 text-gold-foreground">Главное</span>}
+                        <button className="absolute right-1 top-1 hidden rounded-full bg-black/60 p-0.5 group-hover:block"
+                          onClick={(e) => { e.stopPropagation(); setPhotos((ps) => ps.filter((_, j) => j !== i)); }}>
+                          <Icon name="X" size={12} className="text-white" />
+                        </button>
+                      </div>
+                    ))}
+                    {photos.length < 8 && (
+                      <button
+                        className="aspect-square rounded-lg border-2 border-dashed border-border flex flex-col items-center justify-center gap-1 hover:border-gold transition-colors text-muted-foreground hover:text-gold"
+                        onClick={() => photoInputRef.current?.click()}
+                        disabled={uploading}
+                      >
+                        {uploading
+                          ? <Icon name="Loader2" size={20} className="animate-spin" />
+                          : <><Icon name="ImagePlus" size={20} /><span className="text-[10px]">Добавить</span></>}
+                      </button>
+                    )}
+                  </div>
+                  <input ref={photoInputRef} type="file" accept="image/*" multiple className="hidden"
+                    onChange={(e) => handlePhotoFiles(e.target.files)} />
+                  {photos.length === 0 && (
+                    <button
+                      className="mt-2 w-full rounded-lg border-2 border-dashed border-border py-6 text-center hover:border-gold transition-colors"
+                      onClick={() => photoInputRef.current?.click()}
+                      disabled={uploading}
+                    >
+                      {uploading
+                        ? <><Icon name="Loader2" size={18} className="inline animate-spin mr-2" />Загрузка...</>
+                        : <><Icon name="Upload" size={18} className="inline mr-2 text-gold" />Перетащите фото или нажмите для выбора</>}
+                    </button>
+                  )}
+                </div>
+
+                <Input placeholder="Название товара *" value={form.name} onChange={(e) => set('name', e.target.value)} />
+                <select className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm" value={form.category} onChange={(e) => set('category', e.target.value)}>
+                  <option value="">Категория</option>
+                  {CATEGORIES.map((c) => <option key={c}>{c}</option>)}
+                </select>
+                <div className="grid grid-cols-2 gap-3">
+                  <Input placeholder="Цена (напр. от $5/шт.)" value={form.price} onChange={(e) => set('price', e.target.value)} />
+                  <Input placeholder="Артикул / SKU" value={form.sku} onChange={(e) => set('sku', e.target.value)} />
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <Input placeholder="Мин. заказ (напр. 100 шт.)" value={form.min_order} onChange={(e) => set('min_order', e.target.value)} />
+                  <Input placeholder="Остаток на складе" value={form.quantity} onChange={(e) => set('quantity', e.target.value)} />
+                </div>
+                <Textarea placeholder="Описание товара" value={form.description} onChange={(e) => set('description', e.target.value)} className="min-h-24" />
+              </div>
+              <DialogFooter>
+                <Button variant="outline" onClick={() => setOpen(false)}>Отмена</Button>
+                <Button className="bg-gold text-gold-foreground hover:bg-gold/90" disabled={loading || uploading} onClick={submit}>
+                  {loading ? <><Icon name="Loader2" size={15} className="mr-1 animate-spin" />Сохранение...</> : 'Сохранить товар'}
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+        </div>
+      </div>
+
+      {/* Excel format hint */}
+      <div className="mb-4 rounded-lg border border-border bg-secondary/50 px-4 py-3 text-sm text-muted-foreground">
+        <Icon name="Info" size={14} className="inline mr-1.5 text-gold" />
+        Для импорта из Excel колонки: <span className="font-500 text-navy">название, категория, цена, описание, артикул, мин. заказ, фото</span>
+        <a href="#" className="ml-2 text-gold hover:underline" onClick={(e) => { e.preventDefault(); }}>Скачать шаблон</a>
       </div>
 
       {products.length === 0 ? (
-        <Card className="border-dashed"><CardContent className="flex flex-col items-center gap-2 py-12 text-center">
-          <Icon name="PackagePlus" size={40} className="text-muted-foreground" />
-          <p className="text-muted-foreground">Пока нет товаров. Добавьте первый!</p>
+        <Card className="border-dashed"><CardContent className="flex flex-col items-center gap-3 py-14 text-center">
+          <Icon name="PackagePlus" size={44} className="text-muted-foreground" />
+          <p className="font-600 text-navy">Пока нет товаров</p>
+          <p className="text-sm text-muted-foreground">Добавьте вручную или загрузите из Excel</p>
         </CardContent></Card>
       ) : (
         <div className="grid gap-4 md:grid-cols-2">
-          {products.map((p) => (
-            <Card key={p.id} className="border-border">
-              <CardContent className="flex gap-4 p-4">
-                <div className="flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-secondary">
-                  {p.image_url ? <img src={p.image_url} alt={p.name} className="h-full w-full object-cover" /> : <Icon name="Package" size={24} className="text-muted-foreground" />}
-                </div>
-                <div className="flex-1 min-w-0">
+          {products.map((p) => {
+            const allPhotos = (p.photos?.length ? p.photos : p.image_url ? [p.image_url] : []);
+            return (
+              <Card key={p.id} className="border-border overflow-hidden">
+                {/* Photo strip */}
+                {allPhotos.length > 0 && (
+                  <div className="flex gap-1 bg-secondary p-2">
+                    {allPhotos.slice(0, 5).map((url, i) => (
+                      <div key={i} className="relative h-20 flex-1 cursor-pointer overflow-hidden rounded-md"
+                        onClick={() => setLightbox(url)}>
+                        <img src={url} alt="" className="h-full w-full object-cover hover:scale-105 transition-transform" />
+                        {i === 0 && allPhotos.length > 1 && (
+                          <span className="absolute bottom-1 right-1 rounded bg-black/50 px-1 text-[10px] text-white">+{allPhotos.length - 1}</span>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
+                <CardContent className="p-4">
                   <div className="flex items-start justify-between gap-2">
-                    <div>
+                    <div className="min-w-0">
                       <div className="font-600 text-navy truncate">{p.name}</div>
                       <div className="text-sm text-muted-foreground">{p.category || 'Без категории'} · {p.price || 'Цена по запросу'}</div>
+                      {(p.sku || p.min_order) && (
+                        <div className="mt-1 flex flex-wrap gap-2 text-xs text-muted-foreground">
+                          {p.sku && <span>Арт.: {p.sku}</span>}
+                          {p.min_order && <span>Мин.: {p.min_order}</span>}
+                        </div>
+                      )}
                     </div>
-                    <Badge variant="secondary">{p.status}</Badge>
+                    <Badge variant="secondary" className="shrink-0">{p.status}</Badge>
                   </div>
-                  {p.description && <p className="mt-1 line-clamp-2 text-sm text-muted-foreground">{p.description}</p>}
-                  <div className="mt-2 flex items-center justify-between">
-                    <span className="flex items-center gap-1 text-sm text-muted-foreground"><Icon name="Eye" size={14} />{p.views}</span>
-                    <Button variant="ghost" size="sm" className="text-destructive hover:text-destructive" onClick={() => del(p.id)}><Icon name="Trash2" size={16} /></Button>
+                  {p.description && <p className="mt-2 line-clamp-2 text-sm text-muted-foreground">{p.description}</p>}
+                  <div className="mt-3 flex items-center justify-between border-t border-border pt-2">
+                    <span className="flex items-center gap-1 text-sm text-muted-foreground">
+                      <Icon name="Eye" size={14} />{p.views}
+                      {allPhotos.length > 0 && <><Icon name="Image" size={14} className="ml-2" />{allPhotos.length}</>}
+                    </span>
+                    <Button variant="ghost" size="sm" className="text-destructive hover:text-destructive" onClick={() => del(p.id)}>
+                      <Icon name="Trash2" size={16} />
+                    </Button>
                   </div>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
+                </CardContent>
+              </Card>
+            );
+          })}
         </div>
       )}
     </div>

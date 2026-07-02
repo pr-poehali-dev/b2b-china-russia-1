@@ -123,7 +123,7 @@ def handler(event: dict, context) -> dict:
             )
             seller = cur.fetchone()
             cur.execute(
-                "SELECT id, name, category, price, description, image_url, status, views, created_at "
+                "SELECT id, name, category, price, description, image_url, photos, sku, min_order, quantity, status, views, created_at "
                 "FROM products WHERE seller_id = %s AND status != 'Удалён' ORDER BY created_at DESC",
                 (seller_id,),
             )
@@ -183,11 +183,14 @@ def handler(event: dict, context) -> dict:
             name = (body.get('name') or '').strip()
             if not name:
                 return _resp(400, {'error': 'Укажите название товара'})
+            photos = body.get('photos', [])
+            image_url = photos[0] if photos else body.get('image_url')
             cur.execute(
-                "INSERT INTO products (seller_id, name, category, price, description, image_url) "
-                "VALUES (%s, %s, %s, %s, %s, %s) "
-                "RETURNING id, name, category, price, description, image_url, status, views, created_at",
-                (seller_id, name, body.get('category'), body.get('price'), body.get('description'), body.get('image_url')),
+                "INSERT INTO products (seller_id, name, category, price, description, image_url, photos, sku, min_order, quantity) "
+                "VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s) "
+                "RETURNING id, name, category, price, description, image_url, photos, sku, min_order, quantity, status, views, created_at",
+                (seller_id, name, body.get('category'), body.get('price'), body.get('description'),
+                 image_url, photos, body.get('sku'), body.get('min_order'), body.get('quantity')),
             )
             return _resp(200, {'product': dict(cur.fetchone())})
 

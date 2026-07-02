@@ -18,6 +18,13 @@
       "method": "GET",
       "path": "/?action=dashboard",
       "expectedStatus": 401
+    },
+    {
+      "name": "Buy premium without token",
+      "method": "POST",
+      "path": "/?action=buy_premium",
+      "body": {"plan": "Gold"},
+      "expectedStatus": 401
     }
   ]
 }

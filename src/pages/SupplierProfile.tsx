@@ -10,6 +10,163 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, Dialog
 import { toast } from '@/hooks/use-toast';
 import { supplierApi, type PublicSeller, type PublicProduct, type PublicCert, type PublicMedia } from '@/lib/supplierApi';
 
+// ---------- PRODUCT MODAL ----------
+const ProductModal = ({ product, seller, onClose }: {
+  product: PublicProduct;
+  seller: PublicSeller;
+  onClose: () => void;
+}) => {
+  const [activePhoto, setActivePhoto] = useState(0);
+  const [leadOpen, setLeadOpen] = useState(false);
+  const [form, setForm] = useState({ buyer_name: '', buyer_contact: '', message: '' });
+  const [loading, setLoading] = useState(false);
+
+  const photos = (product as PublicProduct & { photos?: string[] }).photos?.length
+    ? (product as PublicProduct & { photos?: string[] }).photos!
+    : product.image_url ? [product.image_url] : [];
+
+  const submit = async () => {
+    if (!form.buyer_name.trim() || !form.buyer_contact.trim()) {
+      toast({ title: 'Заполните имя и контакт', variant: 'destructive' });
+      return;
+    }
+    setLoading(true);
+    try {
+      await supplierApi.sendLead({
+        seller_id: seller.id,
+        buyer_name: form.buyer_name,
+        buyer_contact: form.buyer_contact,
+        message: `Товар: ${product.name}\n${form.message}`,
+      });
+      toast({ title: 'Заявка отправлена!', description: 'Поставщик свяжется с вами в ближайшее время.' });
+      setLeadOpen(false);
+      setForm({ buyer_name: '', buyer_contact: '', message: '' });
+    } catch (e) {
+      toast({ title: 'Ошибка', description: (e as Error).message, variant: 'destructive' });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm" onClick={onClose}>
+      <div
+        className="relative w-full max-w-2xl max-h-[90vh] overflow-y-auto rounded-2xl bg-background shadow-2xl"
+        onClick={(e) => e.stopPropagation()}
+      >
+        {/* Close */}
+        <button
+          onClick={onClose}
+          className="absolute right-4 top-4 z-10 flex h-8 w-8 items-center justify-center rounded-full bg-background/80 border border-border shadow hover:bg-secondary transition-colors"
+        >
+          <Icon name="X" size={16} className="text-navy" />
+        </button>
+
+        {/* Photo gallery */}
+        <div className="relative bg-secondary">
+          {photos.length > 0 ? (
+            <>
+              <div className="flex h-64 items-center justify-center overflow-hidden sm:h-80">
+                <img
+                  src={photos[activePhoto]}
+                  alt={product.name}
+                  className="h-full w-full object-contain"
+                  onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
+                />
+              </div>
+              {photos.length > 1 && (
+                <div className="flex gap-2 overflow-x-auto p-3">
+                  {photos.map((url, i) => (
+                    <button
+                      key={i}
+                      onClick={() => setActivePhoto(i)}
+                      className={`h-14 w-14 shrink-0 overflow-hidden rounded-lg border-2 transition-colors ${i === activePhoto ? 'border-gold' : 'border-transparent'}`}
+                    >
+                      <img src={url} alt="" className="h-full w-full object-cover" />
+                    </button>
+                  ))}
+                </div>
+              )}
+            </>
+          ) : (
+            <div className="flex h-48 items-center justify-center">
+              <Icon name="Package" size={56} className="text-muted-foreground" />
+            </div>
+          )}
+        </div>
+
+        {/* Info */}
+        <div className="p-6">
+          <div className="flex flex-wrap items-start justify-between gap-3">
+            <div>
+              {product.category && (
+                <Badge variant="secondary" className="mb-2">{product.category}</Badge>
+              )}
+              <h2 className="font-display text-2xl font-700 text-navy">{product.name}</h2>
+            </div>
+            {product.price && (
+              <div className="font-display text-2xl font-700 text-gold shrink-0">{product.price}</div>
+            )}
+          </div>
+
+          {product.description && (
+            <p className="mt-4 text-muted-foreground leading-relaxed">{product.description}</p>
+          )}
+
+          {/* Supplier mini */}
+          <div className="mt-5 flex items-center gap-3 rounded-xl border border-border bg-secondary/40 p-3">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-navy font-display font-700 text-white">
+              {seller.company_name[0]}
+            </div>
+            <div className="flex-1 min-w-0">
+              <div className="font-600 text-navy truncate">{seller.company_name}</div>
+              <div className="text-xs text-muted-foreground">{seller.province || ''} {seller.category || ''}</div>
+            </div>
+            <div className="flex items-center gap-1 text-sm">
+              <Icon name="Star" size={13} className="text-gold" />
+              <span className="font-600 text-navy">{Number(seller.rating).toFixed(1)}</span>
+            </div>
+          </div>
+
+          {/* Actions */}
+          {!leadOpen ? (
+            <div className="mt-5 flex gap-3">
+              <Button
+                className="flex-1 bg-gold text-gold-foreground hover:bg-gold/90"
+                onClick={() => setLeadOpen(true)}
+              >
+                <Icon name="Send" size={16} className="mr-2" />
+                Запросить цену
+              </Button>
+              <Button variant="outline" className="border-navy text-navy" onClick={onClose}>
+                Закрыть
+              </Button>
+            </div>
+          ) : (
+            <div className="mt-5 space-y-3 rounded-xl border border-border p-4">
+              <p className="font-600 text-navy text-sm">Заявка на товар: {product.name}</p>
+              <Input placeholder="Ваше имя / компания *" value={form.buyer_name} onChange={(e) => setForm(f => ({ ...f, buyer_name: e.target.value }))} />
+              <Input placeholder="Email или телефон *" value={form.buyer_contact} onChange={(e) => setForm(f => ({ ...f, buyer_contact: e.target.value }))} />
+              <Textarea
+                placeholder="Количество, требования, вопросы..."
+                className="min-h-20"
+                value={form.message}
+                onChange={(e) => setForm(f => ({ ...f, message: e.target.value }))}
+              />
+              <div className="flex gap-2">
+                <Button className="flex-1 bg-gold text-gold-foreground hover:bg-gold/90" disabled={loading} onClick={submit}>
+                  {loading ? 'Отправка...' : 'Отправить заявку'}
+                </Button>
+                <Button variant="outline" onClick={() => setLeadOpen(false)}>Отмена</Button>
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+};
+
 const PLAN_BADGE: Record<string, string> = {
   Gold: 'bg-gold text-gold-foreground',
   Platinum: 'bg-navy text-white',
@@ -83,6 +240,7 @@ const SupplierProfile = () => {
   const [media, setMedia] = useState<PublicMedia[]>([]);
   const [loading, setLoading] = useState(true);
   const [lightbox, setLightbox] = useState<string | null>(null);
+  const [selectedProduct, setSelectedProduct] = useState<PublicProduct | null>(null);
 
   useEffect(() => {
     if (!id) return;
@@ -126,6 +284,15 @@ const SupplierProfile = () => {
 
   return (
     <div className="min-h-screen bg-background">
+      {/* Product modal */}
+      {selectedProduct && seller && (
+        <ProductModal
+          product={selectedProduct}
+          seller={seller}
+          onClose={() => setSelectedProduct(null)}
+        />
+      )}
+
       {/* Lightbox */}
       {lightbox && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4" onClick={() => setLightbox(null)}>
@@ -246,19 +413,34 @@ const SupplierProfile = () => {
             </h2>
             <div className="grid gap-4 sm:grid-cols-2 md:grid-cols-3">
               {products.map((p) => (
-                <Card key={p.id} className="border-border hover-lift overflow-hidden">
-                  <div className="flex h-40 items-center justify-center overflow-hidden bg-secondary">
+                <Card
+                  key={p.id}
+                  className="border-border hover-lift overflow-hidden cursor-pointer group"
+                  onClick={() => setSelectedProduct(p)}
+                >
+                  <div className="relative flex h-40 items-center justify-center overflow-hidden bg-secondary">
                     {p.image_url ? (
-                      <img src={p.image_url} alt={p.name} className="h-full w-full object-cover" onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} />
+                      <img src={p.image_url} alt={p.name} className="h-full w-full object-cover transition-transform group-hover:scale-105" onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} />
                     ) : (
                       <Icon name="Package" size={36} className="text-muted-foreground" />
                     )}
+                    <div className="absolute inset-0 flex items-center justify-center bg-navy/0 group-hover:bg-navy/20 transition-colors">
+                      <span className="translate-y-2 opacity-0 group-hover:opacity-100 group-hover:translate-y-0 transition-all rounded-full bg-white/90 px-3 py-1 text-xs font-600 text-navy shadow">
+                        Подробнее
+                      </span>
+                    </div>
                   </div>
                   <CardContent className="p-4">
                     <div className="font-600 text-navy">{p.name}</div>
                     {p.category && <div className="text-sm text-muted-foreground">{p.category}</div>}
                     {p.price && <div className="mt-1 font-600 text-gold">{p.price}</div>}
                     {p.description && <p className="mt-1 line-clamp-2 text-sm text-muted-foreground">{p.description}</p>}
+                    <div className="mt-3 flex items-center justify-between border-t border-border pt-2">
+                      <span className="text-xs text-muted-foreground flex items-center gap-1">
+                        <Icon name="Eye" size={12} />{p.views}
+                      </span>
+                      <span className="text-xs font-500 text-gold">Запросить цену →</span>
+                    </div>
                   </CardContent>
                 </Card>
               ))}

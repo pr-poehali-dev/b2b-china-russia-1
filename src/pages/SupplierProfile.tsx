@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import Icon from '@/components/ui/icon';
 import { Button } from '@/components/ui/button';
@@ -9,6 +9,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from '@/components/ui/dialog';
 import { toast } from '@/hooks/use-toast';
 import { supplierApi, type PublicSeller, type PublicProduct, type PublicCert, type PublicMedia } from '@/lib/supplierApi';
+import { feedApi, type FeedVideo } from '@/lib/feedApi';
 
 // ---------- PRODUCT MODAL ----------
 const ProductModal = ({ product, seller, onClose }: {
@@ -233,6 +234,152 @@ const LeadDialog = ({ seller }: { seller: PublicSeller }) => {
   );
 };
 
+// --------- SELLER VIDEO FEED ---------
+const SellerVideoFeed = ({ sellerId }: { sellerId: number }) => {
+  const [videos, setVideos] = useState<FeedVideo[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [activeIdx, setActiveIdx] = useState<number | null>(null);
+  const [likedIds, setLikedIds] = useState<Set<number>>(new Set());
+  const scrollRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    feedApi.sellerVideos(String(sellerId))
+      .then(d => setVideos(d.videos || []))
+      .finally(() => setLoading(false));
+  }, [sellerId]);
+
+  const handleLike = async (id: number) => {
+    const next = new Set(likedIds);
+    if (next.has(id)) next.delete(id); else next.add(id);
+    setLikedIds(next);
+    feedApi.like(id);
+    setVideos(vs => vs.map(v => v.id === id
+      ? { ...v, liked: !v.liked, likes_count: v.liked ? Math.max(0, v.likes_count - 1) : v.likes_count + 1 }
+      : v));
+  };
+
+  if (loading) return (
+    <div className="flex h-32 items-center justify-center">
+      <Icon name="Loader2" size={24} className="animate-spin text-gold" />
+    </div>
+  );
+
+  if (videos.length === 0) return (
+    <div className="flex flex-col items-center gap-2 rounded-2xl border-2 border-dashed border-border py-12 text-center">
+      <Icon name="Clapperboard" size={36} className="text-muted-foreground" />
+      <p className="text-muted-foreground">Видео пока не загружены</p>
+    </div>
+  );
+
+  return (
+    <div>
+      {/* Horizontal scroll on mobile, grid on desktop */}
+      <div
+        ref={scrollRef}
+        className="flex gap-3 overflow-x-auto pb-2 md:hidden"
+        style={{ scrollbarWidth: 'none' }}
+      >
+        {videos.map((v, i) => (
+          <VideoThumb
+            key={v.id}
+            video={v}
+            active={activeIdx === i}
+            onPlay={() => setActiveIdx(activeIdx === i ? null : i)}
+            onLike={() => handleLike(v.id)}
+          />
+        ))}
+      </div>
+
+      {/* Grid on desktop */}
+      <div className="hidden md:grid grid-cols-3 lg:grid-cols-4 gap-3">
+        {videos.map((v, i) => (
+          <VideoThumb
+            key={v.id}
+            video={v}
+            active={activeIdx === i}
+            onPlay={() => setActiveIdx(activeIdx === i ? null : i)}
+            onLike={() => handleLike(v.id)}
+          />
+        ))}
+      </div>
+    </div>
+  );
+};
+
+const VideoThumb = ({ video, active, onPlay, onLike }: {
+  video: FeedVideo;
+  active: boolean;
+  onPlay: () => void;
+  onLike: () => void;
+}) => {
+  const videoEl = useRef<HTMLVideoElement>(null);
+
+  useEffect(() => {
+    if (active && videoEl.current) {
+      videoEl.current.play().catch(() => {});
+    } else {
+      videoEl.current?.pause();
+      if (videoEl.current) videoEl.current.currentTime = 0;
+    }
+  }, [active]);
+
+  return (
+    <div
+      className="relative shrink-0 cursor-pointer overflow-hidden rounded-2xl bg-black"
+      style={{ width: 160, aspectRatio: '9/16' }}
+      onClick={onPlay}
+    >
+      <video
+        ref={videoEl}
+        src={video.url}
+        className="h-full w-full object-cover"
+        loop
+        playsInline
+        muted
+        preload="metadata"
+      />
+
+      {/* Overlay */}
+      {!active && (
+        <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/20">
+          <div className="flex h-11 w-11 items-center justify-center rounded-full bg-white/25 backdrop-blur-sm border border-white/40">
+            <Icon name="Play" size={18} className="text-white ml-0.5" />
+          </div>
+        </div>
+      )}
+
+      {/* Bottom info */}
+      <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 p-2">
+        {video.caption && <p className="text-[11px] text-white line-clamp-1 mb-1">{video.caption}</p>}
+        {video.hashtags?.length > 0 && (
+          <p className="text-[10px] text-gold/80 line-clamp-1 mb-1">
+            {video.hashtags.slice(0, 2).map(t => `#${t}`).join(' ')}
+          </p>
+        )}
+        <div className="flex items-center justify-between">
+          <span className="flex items-center gap-0.5 text-[10px] text-white/70">
+            <Icon name="Eye" size={10} />{video.views_count}
+          </span>
+          <button
+            className="flex items-center gap-0.5 text-[10px] text-white/70 hover:text-red-400 transition-colors"
+            onClick={e => { e.stopPropagation(); onLike(); }}
+          >
+            <Icon name="Heart" size={10} className={video.liked ? 'text-red-400' : ''} />
+            {video.likes_count}
+          </button>
+        </div>
+      </div>
+
+      {/* Playing indicator */}
+      {active && (
+        <div className="absolute top-2 right-2 flex h-5 w-5 items-center justify-center rounded-full bg-red-500">
+          <Icon name="Square" size={8} className="text-white fill-white" />
+        </div>
+      )}
+    </div>
+  );
+};
+
 const SupplierProfile = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
@@ -449,6 +596,26 @@ const SupplierProfile = () => {
             </div>
           </section>
         )}
+
+        {/* Video Channel */}
+        <section>
+          <div className="mb-5 flex items-center justify-between">
+            <h2 className="font-display text-2xl font-700 text-navy">
+              <Icon name="Clapperboard" size={22} className="inline mr-2 text-gold" />
+              Видео компании
+            </h2>
+            <Button
+              variant="outline"
+              size="sm"
+              className="border-navy text-navy gap-1.5"
+              onClick={() => navigate('/feed')}
+            >
+              <Icon name="Play" size={14} />
+              Смотреть в ленте
+            </Button>
+          </div>
+          <SellerVideoFeed sellerId={seller.id} />
+        </section>
 
         {/* Media gallery */}
         {(photos.length > 0 || videos.length > 0) && (

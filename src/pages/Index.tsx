@@ -48,6 +48,7 @@ const PROVINCES = [
 
 const SUPPLIERS = [
   {
+    id: 1,
     name: 'Shenzhen TechCore Ltd.',
     category: 'Электроника',
     province: 'Гуандун',
@@ -58,6 +59,7 @@ const SUPPLIERS = [
     tag: 'Gold',
   },
   {
+    id: 2,
     name: 'Ningbo HomeStyle Mfg.',
     category: 'Товары для дома',
     province: 'Чжэцзян',
@@ -68,6 +70,7 @@ const SUPPLIERS = [
     tag: 'Premium',
   },
   {
+    id: 3,
     name: 'Suzhou TextilePro',
     category: 'Текстиль',
     province: 'Цзянсу',
@@ -78,6 +81,7 @@ const SUPPLIERS = [
     tag: 'Verified',
   },
   {
+    id: 4,
     name: 'Foshan AutoParts Co.',
     category: 'Автозапчасти',
     province: 'Гуандун',
@@ -350,6 +354,7 @@ const Index = () => {
                     size="sm"
                     variant="outline"
                     className="border-navy text-navy"
+                    onClick={() => navigate(`/supplier/${s.id || 1}`)}
                   >
                     Профиль
                   </Button>

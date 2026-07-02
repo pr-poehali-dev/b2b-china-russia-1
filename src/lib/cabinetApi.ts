@@ -97,4 +97,20 @@ export const api = {
   deleteCert: (id: number) => call('delete_cert', 'POST', { id }),
   leadStatus: (id: number, status: string) => call('lead_status', 'POST', { id, status }),
   buyPremium: (plan: string) => call('buy_premium', 'POST', { plan }),
+  getContactRequests: () => call('contact_requests', 'GET'),
+  contactStatus: (id: number, status: string) => call('contact_status', 'POST', { id, status }),
 };
+
+export interface ContactRequest {
+  id: number;
+  name: string;
+  company?: string;
+  email?: string;
+  phone?: string;
+  product_interest?: string;
+  budget?: string;
+  quantity?: string;
+  message?: string;
+  status: string;
+  created_at: string;
+}

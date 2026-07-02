@@ -250,6 +250,22 @@ def handler(event: dict, context) -> dict:
             order = cur.fetchone()
             return _resp(200, {'order': dict(order), 'message': 'Заявка принята. Менеджер свяжется с вами.'})
 
+        # --- CONTACT REQUESTS (заявки с главной) ---
+        if action == 'contact_requests' and method == 'GET':
+            cur.execute(
+                "SELECT id, name, company, email, phone, product_interest, budget, quantity, message, status, created_at "
+                "FROM contact_requests ORDER BY created_at DESC LIMIT 100"
+            )
+            requests = cur.fetchall()
+            return _resp(200, {'requests': [dict(r) for r in requests]})
+
+        if action == 'contact_status' and method == 'POST':
+            cur.execute(
+                "UPDATE contact_requests SET status=%s WHERE id=%s",
+                (body.get('status', 'Новая'), body.get('id')),
+            )
+            return _resp(200, {'ok': True})
+
         return _resp(404, {'error': 'Неизвестное действие'})
     finally:
         cur.close()

@@ -24,6 +24,7 @@ import {
   type Seller,
   type Product,
   type Lead,
+  type ContactRequest,
   type Certificate,
   type Media,
   type Stats,
@@ -538,6 +539,117 @@ const PremiumTab = ({ currentPlan, premium, onBuy }: { currentPlan: string; prem
   );
 };
 
+// ---------- CONTACT REQUESTS TAB ----------
+const CONTACT_STATUSES = ['Новая', 'В работе', 'Закрыта'];
+
+const ContactRequestsTab = () => {
+  const [requests, setRequests] = useState<ContactRequest[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [expanded, setExpanded] = useState<number | null>(null);
+
+  useEffect(() => {
+    api.getContactRequests()
+      .then((d) => setRequests(d.requests || []))
+      .finally(() => setLoading(false));
+  }, []);
+
+  const changeStatus = async (id: number, status: string) => {
+    try {
+      await api.contactStatus(id, status);
+      setRequests((rs) => rs.map((r) => r.id === id ? { ...r, status } : r));
+    } catch (e) { toast({ title: 'Ошибка', description: (e as Error).message, variant: 'destructive' }); }
+  };
+
+  const statusColor: Record<string, string> = {
+    'Новая': 'bg-gold/15 text-gold border-gold/30',
+    'В работе': 'bg-navy/10 text-navy border-navy/20',
+    'Закрыта': 'bg-secondary text-muted-foreground border-border',
+  };
+
+  if (loading) return <div className="space-y-3">{Array.from({ length: 3 }).map((_, i) => <div key={i} className="h-20 animate-pulse rounded-xl bg-secondary" />)}</div>;
+
+  if (requests.length === 0) return (
+    <Card className="border-dashed">
+      <CardContent className="flex flex-col items-center gap-2 py-16 text-center">
+        <Icon name="Inbox" size={40} className="text-muted-foreground" />
+        <p className="font-600 text-navy">Заявок с сайта пока нет</p>
+        <p className="text-sm text-muted-foreground">Они появятся, когда кто-то заполнит форму на главной странице</p>
+      </CardContent>
+    </Card>
+  );
+
+  return (
+    <div className="space-y-3">
+      {requests.map((r) => (
+        <Card key={r.id} className="border-border">
+          <CardContent className="p-4">
+            <div className="flex flex-wrap items-start justify-between gap-3">
+              {/* Left: info */}
+              <div className="flex-1 min-w-0">
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="font-600 text-navy">{r.name}</span>
+                  {r.company && <span className="text-sm text-muted-foreground">· {r.company}</span>}
+                  <span className={`rounded-full border px-2 py-0.5 text-xs font-500 ${statusColor[r.status] || statusColor['Новая']}`}>
+                    {r.status}
+                  </span>
+                </div>
+                <div className="mt-1 flex flex-wrap gap-3 text-sm text-muted-foreground">
+                  {r.email && (
+                    <a href={`mailto:${r.email}`} className="flex items-center gap-1 hover:text-gold transition-colors">
+                      <Icon name="Mail" size={13} />{r.email}
+                    </a>
+                  )}
+                  {r.phone && (
+                    <a href={`tel:${r.phone}`} className="flex items-center gap-1 hover:text-gold transition-colors">
+                      <Icon name="Phone" size={13} />{r.phone}
+                    </a>
+                  )}
+                </div>
+                {r.product_interest && (
+                  <div className="mt-1.5 flex items-center gap-1.5 text-sm">
+                    <Icon name="Package" size={13} className="text-gold shrink-0" />
+                    <span className="font-500 text-navy">{r.product_interest}</span>
+                    {r.budget && <span className="text-muted-foreground">· {r.budget}</span>}
+                  </div>
+                )}
+                {expanded === r.id && r.message && (
+                  <p className="mt-2 rounded-lg bg-secondary/70 p-3 text-sm text-muted-foreground">{r.message}</p>
+                )}
+                {r.message && (
+                  <button
+                    className="mt-1 text-xs text-gold hover:underline"
+                    onClick={() => setExpanded(expanded === r.id ? null : r.id)}
+                  >
+                    {expanded === r.id ? 'Свернуть' : 'Показать сообщение'}
+                  </button>
+                )}
+                <div className="mt-1 text-xs text-muted-foreground">
+                  {new Date(r.created_at).toLocaleString('ru-RU')}
+                </div>
+              </div>
+
+              {/* Right: status buttons */}
+              <div className="flex flex-wrap gap-1 shrink-0">
+                {CONTACT_STATUSES.map((s) => (
+                  <button
+                    key={s}
+                    onClick={() => changeStatus(r.id, s)}
+                    className={`rounded-full border px-3 py-1 text-xs font-500 transition-colors ${
+                      r.status === s ? 'border-navy bg-navy text-white' : 'border-border text-muted-foreground hover:border-navy'
+                    }`}
+                  >
+                    {s}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      ))}
+    </div>
+  );
+};
+
 // ---------- BLOG TAB ----------
 const ARTICLE_TAGS = ['Новости', 'Торговля', 'Логистика', 'Регулирование', 'Аналитика'];
 
@@ -788,6 +900,7 @@ const Cabinet = () => {
             <TabsTrigger value="profile"><Icon name="Building2" size={15} className="mr-1" />Профиль компании</TabsTrigger>
             <TabsTrigger value="premium"><Icon name="Sparkles" size={15} className="mr-1" />Премиум</TabsTrigger>
             <TabsTrigger value="blog"><Icon name="Newspaper" size={15} className="mr-1" />Блог</TabsTrigger>
+            <TabsTrigger value="contacts"><Icon name="MessageCircle" size={15} className="mr-1" />Заявки с сайта</TabsTrigger>
           </TabsList>
 
           <div className="mt-6">
@@ -827,6 +940,9 @@ const Cabinet = () => {
             </TabsContent>
             <TabsContent value="blog">
               <BlogTab navigate={navigate} />
+            </TabsContent>
+            <TabsContent value="contacts">
+              <ContactRequestsTab />
             </TabsContent>
           </div>
         </Tabs>

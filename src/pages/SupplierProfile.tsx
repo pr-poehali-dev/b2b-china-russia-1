@@ -180,10 +180,10 @@ const SupplierProfile = () => {
                 <div className="mt-2 flex items-center gap-2">
                   <div className="flex items-center gap-1">
                     {[1,2,3,4,5].map((s) => (
-                      <Icon key={s} name="Star" size={15} className={s <= Math.round(seller.rating) ? 'text-gold' : 'text-border'} />
+                      <Icon key={s} name="Star" size={15} className={s <= Math.round(Number(seller.rating)) ? 'text-gold' : 'text-border'} />
                     ))}
                   </div>
-                  <span className="font-600 text-navy">{seller.rating.toFixed(1)}</span>
+                  <span className="font-600 text-navy">{Number(seller.rating).toFixed(1)}</span>
                   <span className="text-sm text-muted-foreground">({seller.reviews_count} отзывов)</span>
                 </div>
                 {seller.description && (

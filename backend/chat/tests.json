@@ -1,0 +1,8 @@
+{
+  "tests": [
+    {"name": "OPTIONS CORS", "method": "OPTIONS", "path": "/", "expectedStatus": 200},
+    {"name": "Init session", "method": "POST", "path": "/?action=init", "body": {"name": "Тест", "visitor_id": "test-visitor-001"}, "expectedStatus": 200},
+    {"name": "Poll without session", "method": "GET", "path": "/?action=poll", "expectedStatus": 400},
+    {"name": "Admin sessions without token", "method": "GET", "path": "/?action=sessions", "expectedStatus": 403}
+  ]
+}

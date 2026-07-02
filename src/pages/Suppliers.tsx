@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import Icon from '@/components/ui/icon';
 import { Button } from '@/components/ui/button';
@@ -66,6 +66,49 @@ const SupplierCard = ({ seller }: { seller: PublicSeller }) => {
   );
 };
 
+const FilterContent = ({ plan, setPlan, province, setProvince, category, setCategory, onApply }: {
+  plan: string; setPlan: (v: string) => void;
+  province: string; setProvince: (v: string) => void;
+  category: string; setCategory: (v: string) => void;
+  onApply?: () => void;
+}) => (
+  <div className="space-y-5">
+    <div>
+      <p className="mb-2 text-xs font-600 uppercase tracking-wide text-muted-foreground">Статус</p>
+      <div className="space-y-1">
+        {PLANS.map((p) => (
+          <button key={p} onClick={() => { setPlan(plan === p ? '' : p); onApply?.(); }}
+            className={`flex w-full items-center gap-2 rounded-lg px-3 py-2.5 text-sm transition-colors ${plan === p ? 'bg-navy text-white' : 'hover:bg-secondary text-foreground'}`}>
+            <Icon name="Sparkles" size={14} />{p}
+          </button>
+        ))}
+      </div>
+    </div>
+    <div>
+      <p className="mb-2 text-xs font-600 uppercase tracking-wide text-muted-foreground">Провинция</p>
+      <div className="space-y-1">
+        {PROVINCES.map((p) => (
+          <button key={p} onClick={() => { setProvince(province === p ? '' : p); onApply?.(); }}
+            className={`flex w-full items-center gap-2 rounded-lg px-3 py-2.5 text-sm transition-colors ${province === p ? 'bg-navy text-white' : 'hover:bg-secondary text-foreground'}`}>
+            <Icon name="MapPin" size={14} />{p}
+          </button>
+        ))}
+      </div>
+    </div>
+    <div>
+      <p className="mb-2 text-xs font-600 uppercase tracking-wide text-muted-foreground">Категория</p>
+      <div className="space-y-1">
+        {CATEGORIES.map((c) => (
+          <button key={c} onClick={() => { setCategory(category === c ? '' : c); onApply?.(); }}
+            className={`flex w-full items-center gap-2 rounded-lg px-3 py-2.5 text-sm text-left transition-colors ${category === c ? 'bg-navy text-white' : 'hover:bg-secondary text-foreground'}`}>
+            <Icon name="Tag" size={14} />{c}
+          </button>
+        ))}
+      </div>
+    </div>
+  </div>
+);
+
 const Suppliers = () => {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
@@ -114,12 +157,13 @@ const Suppliers = () => {
   };
 
   const hasFilters = query || province || category || plan;
+  const [filtersOpen, setFiltersOpen] = useState(false);
 
   return (
     <div className="min-h-screen bg-background">
       {/* Header */}
       <header className="sticky top-0 z-40 border-b border-border bg-background/90 backdrop-blur-md">
-        <div className="container flex h-16 items-center justify-between gap-4">
+        <div className="container flex h-16 items-center justify-between gap-3">
           <button onClick={() => navigate('/')} className="flex items-center gap-2 shrink-0">
             <div className="flex h-9 w-9 items-center justify-center rounded-md bg-navy text-white">
               <Icon name="Container" size={20} />
@@ -128,92 +172,67 @@ const Suppliers = () => {
               Chinese<span className="text-gold">Bridge</span>
             </span>
           </button>
-          <div className="flex flex-1 items-center gap-2 max-w-md">
+          <div className="flex flex-1 items-center gap-2">
             <div className="relative flex-1">
               <Icon name="Search" size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
               <Input
                 placeholder="Поиск поставщиков..."
-                className="pl-9"
+                className="pl-9 h-10"
                 value={query}
                 onChange={(e) => onQueryChange(e.target.value)}
               />
             </div>
+            <button
+              className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-border lg:hidden relative"
+              onClick={() => setFiltersOpen(o => !o)}
+            >
+              <Icon name="SlidersHorizontal" size={18} className="text-navy" />
+              {hasFilters && <span className="absolute -right-1 -top-1 h-2.5 w-2.5 rounded-full bg-gold" />}
+            </button>
           </div>
-          <Button className="bg-gold text-gold-foreground hover:bg-gold/90 shrink-0" onClick={() => navigate('/cabinet')}>
-            Кабинет продавца
+          <Button className="hidden sm:flex bg-gold text-gold-foreground hover:bg-gold/90 shrink-0" onClick={() => navigate('/cabinet')}>
+            Кабинет
           </Button>
         </div>
       </header>
 
-      <div className="container py-8">
+      {/* Mobile filters drawer */}
+      {filtersOpen && (
+        <div className="fixed inset-0 z-40 lg:hidden" onClick={() => setFiltersOpen(false)}>
+          <div className="absolute inset-0 bg-black/40" />
+          <div className="absolute bottom-0 left-0 right-0 max-h-[80vh] overflow-y-auto rounded-t-2xl bg-background p-5 shadow-xl"
+            onClick={e => e.stopPropagation()}>
+            <div className="mb-4 flex items-center justify-between">
+              <span className="font-display font-600 text-navy">Фильтры</span>
+              <div className="flex gap-2">
+                {hasFilters && <button className="text-xs text-gold hover:underline" onClick={() => { reset(); setFiltersOpen(false); }}>Сбросить</button>}
+                <button onClick={() => setFiltersOpen(false)} className="flex h-8 w-8 items-center justify-center rounded-lg border border-border">
+                  <Icon name="X" size={16} />
+                </button>
+              </div>
+            </div>
+            <FilterContent plan={plan} setPlan={setPlan} province={province} setProvince={setProvince} category={category} setCategory={setCategory} onApply={() => setFiltersOpen(false)} />
+          </div>
+        </div>
+      )}
+
+      <div className="container py-6 md:py-8">
         {/* Page title */}
-        <div className="mb-6">
+        <div className="mb-5">
           <p className="font-500 text-gold">Каталог</p>
-          <h1 className="font-display text-3xl font-700 text-navy md:text-4xl">Поставщики из Китая</h1>
-          <p className="mt-1 text-muted-foreground">Верифицированные производители — напрямую к вашему бизнесу</p>
+          <h1 className="font-display text-2xl font-700 text-navy sm:text-3xl md:text-4xl">Поставщики из Китая</h1>
+          <p className="mt-1 text-sm text-muted-foreground">Верифицированные производители — напрямую к вашему бизнесу</p>
         </div>
 
         <div className="flex flex-col gap-6 lg:flex-row">
-          {/* Sidebar filters */}
-          <aside className="w-full shrink-0 lg:w-60">
+          {/* Sidebar filters — desktop only */}
+          <aside className="hidden w-60 shrink-0 lg:block">
             <div className="rounded-xl border border-border bg-background p-5 space-y-5 sticky top-24">
               <div className="flex items-center justify-between">
                 <span className="font-600 text-navy">Фильтры</span>
-                {hasFilters && (
-                  <button className="text-xs text-gold hover:underline" onClick={reset}>Сбросить</button>
-                )}
+                {hasFilters && <button className="text-xs text-gold hover:underline" onClick={reset}>Сбросить</button>}
               </div>
-
-              {/* Plan */}
-              <div>
-                <p className="mb-2 text-xs font-600 uppercase tracking-wide text-muted-foreground">Статус</p>
-                <div className="space-y-1">
-                  {PLANS.map((p) => (
-                    <button
-                      key={p}
-                      onClick={() => setPlan(plan === p ? '' : p)}
-                      className={`flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm transition-colors ${plan === p ? 'bg-navy text-white' : 'hover:bg-secondary text-foreground'}`}
-                    >
-                      <Icon name="Sparkles" size={14} />
-                      {p}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              {/* Province */}
-              <div>
-                <p className="mb-2 text-xs font-600 uppercase tracking-wide text-muted-foreground">Провинция</p>
-                <div className="space-y-1">
-                  {PROVINCES.map((p) => (
-                    <button
-                      key={p}
-                      onClick={() => setProvince(province === p ? '' : p)}
-                      className={`flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm transition-colors ${province === p ? 'bg-navy text-white' : 'hover:bg-secondary text-foreground'}`}
-                    >
-                      <Icon name="MapPin" size={14} />
-                      {p}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              {/* Category */}
-              <div>
-                <p className="mb-2 text-xs font-600 uppercase tracking-wide text-muted-foreground">Категория</p>
-                <div className="space-y-1">
-                  {CATEGORIES.map((c) => (
-                    <button
-                      key={c}
-                      onClick={() => setCategory(category === c ? '' : c)}
-                      className={`flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm text-left transition-colors ${category === c ? 'bg-navy text-white' : 'hover:bg-secondary text-foreground'}`}
-                    >
-                      <Icon name="Tag" size={14} />
-                      {c}
-                    </button>
-                  ))}
-                </div>
-              </div>
+              <FilterContent plan={plan} setPlan={setPlan} province={province} setProvince={setProvince} category={category} setCategory={setCategory} />
             </div>
           </aside>
 

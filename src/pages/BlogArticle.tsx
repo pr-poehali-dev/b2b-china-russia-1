@@ -59,7 +59,7 @@ const BlogArticle = () => {
         </div>
       </header>
 
-      <div className="container max-w-3xl py-10">
+      <div className="container max-w-3xl py-6 md:py-10">
         {/* Meta */}
         <div className="mb-4 flex flex-wrap items-center gap-3">
           <Badge className={TAG_COLORS[article.tag] || TAG_COLORS['Новости']}>{article.tag}</Badge>
@@ -72,7 +72,7 @@ const BlogArticle = () => {
           </span>
         </div>
 
-        <h1 className="font-display text-3xl font-700 leading-tight text-navy md:text-4xl">{article.title}</h1>
+        <h1 className="font-display text-2xl sm:text-3xl font-700 leading-tight text-navy md:text-4xl">{article.title}</h1>
 
         {article.excerpt && (
           <p className="mt-4 text-lg text-muted-foreground leading-relaxed border-l-4 border-gold pl-4">{article.excerpt}</p>
@@ -86,7 +86,7 @@ const BlogArticle = () => {
         {/* Cover */}
         {article.cover_url && (
           <div className="mt-6 overflow-hidden rounded-2xl">
-            <img src={article.cover_url} alt={article.title} className="w-full object-cover max-h-80"
+            <img src={article.cover_url} alt={article.title} className="w-full object-cover max-h-52 sm:max-h-80"
               onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} />
           </div>
         )}
@@ -110,7 +110,7 @@ const BlogArticle = () => {
 
       {/* Related */}
       {related.length > 0 && (
-        <section className="border-t border-border bg-secondary/30 py-12">
+        <section className="border-t border-border bg-secondary/30 py-8 md:py-12">
           <div className="container max-w-3xl">
             <h2 className="font-display text-xl font-700 text-navy mb-5">Читайте также</h2>
             <div className="grid gap-4 sm:grid-cols-3">

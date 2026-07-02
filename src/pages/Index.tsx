@@ -146,6 +146,7 @@ const Index = () => {
   const [contactForm, setContactForm] = useState({ name: '', company: '', email: '', phone: '', product_interest: '', budget: '', message: '' });
   const [contactSent, setContactSent] = useState(false);
   const [contactLoading, setContactLoading] = useState(false);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -173,8 +174,8 @@ const Index = () => {
     <div className="min-h-screen bg-background text-foreground">
       {/* Header */}
       <header className="sticky top-0 z-50 border-b border-border bg-background/90 backdrop-blur-md">
-        <div className="container flex h-16 items-center justify-between gap-6">
-          <div className="flex items-center gap-2">
+        <div className="container flex h-16 items-center justify-between gap-3">
+          <div className="flex items-center gap-2 shrink-0">
             <div className="flex h-9 w-9 items-center justify-center rounded-md bg-navy text-white">
               <Icon name="Container" size={20} />
             </div>
@@ -182,15 +183,13 @@ const Index = () => {
               Chinese<span className="text-gold">Bridge</span>
             </span>
           </div>
-          <nav className="hidden items-center gap-6 lg:flex">
+          <nav className="hidden items-center gap-5 lg:flex">
             {NAV.map((item, i) => (
               <a
                 key={item.label}
                 href={item.href}
                 onClick={item.href.startsWith('/') ? (e) => { e.preventDefault(); navigate(item.href); } : undefined}
-                className={`text-sm font-500 transition-colors hover:text-gold ${
-                  i === 0 ? 'text-navy' : 'text-muted-foreground'
-                }`}
+                className={`text-sm font-500 transition-colors hover:text-gold ${i === 0 ? 'text-navy' : 'text-muted-foreground'}`}
               >
                 {item.label}
               </a>
@@ -198,20 +197,46 @@ const Index = () => {
           </nav>
           <div className="flex items-center gap-2">
             <Button
-              variant="ghost"
-              className="hidden sm:inline-flex"
-              onClick={() => navigate('/cabinet')}
-            >
-              Войти
-            </Button>
-            <Button
-              className="bg-gold text-gold-foreground hover:bg-gold/90"
+              className="hidden sm:inline-flex bg-gold text-gold-foreground hover:bg-gold/90"
               onClick={() => navigate('/cabinet')}
             >
               Кабинет продавца
             </Button>
+            {/* Mobile hamburger */}
+            <button
+              className="flex h-10 w-10 items-center justify-center rounded-lg border border-border lg:hidden"
+              onClick={() => setMobileMenuOpen(o => !o)}
+            >
+              <Icon name={mobileMenuOpen ? 'X' : 'Menu'} size={20} className="text-navy" />
+            </button>
           </div>
         </div>
+        {/* Mobile menu */}
+        {mobileMenuOpen && (
+          <div className="border-t border-border bg-background px-4 pb-4 pt-2 lg:hidden">
+            <nav className="flex flex-col gap-1">
+              {NAV.map((item) => (
+                <a
+                  key={item.label}
+                  href={item.href}
+                  onClick={(e) => {
+                    if (item.href.startsWith('/')) { e.preventDefault(); navigate(item.href); }
+                    setMobileMenuOpen(false);
+                  }}
+                  className="rounded-lg px-3 py-2.5 text-sm font-500 text-foreground hover:bg-secondary hover:text-navy transition-colors"
+                >
+                  {item.label}
+                </a>
+              ))}
+              <Button
+                className="mt-2 w-full bg-gold text-gold-foreground hover:bg-gold/90"
+                onClick={() => { navigate('/cabinet'); setMobileMenuOpen(false); }}
+              >
+                Кабинет продавца
+              </Button>
+            </nav>
+          </div>
+        )}
       </header>
 
       {/* Hero */}
@@ -223,30 +248,32 @@ const Index = () => {
           className="absolute inset-0 h-full w-full object-cover opacity-25"
         />
         <div className="absolute inset-0 bg-gradient-to-r from-navy-deep via-navy-deep/85 to-transparent" />
-        <div className="container relative py-24 md:py-32">
+        <div className="container relative py-14 md:py-32">
           <div className="max-w-2xl animate-fade-in">
-            <Badge className="mb-5 bg-gold/15 text-gold hover:bg-gold/15">
+            <Badge className="mb-4 bg-gold/15 text-gold hover:bg-gold/15">
               B2B платформа Китай — Россия
             </Badge>
-            <h1 className="font-display text-4xl font-700 leading-tight md:text-6xl">
+            <h1 className="font-display text-3xl font-700 leading-tight sm:text-4xl md:text-6xl">
               Проверенные поставщики из Китая — напрямую к вашему бизнесу
             </h1>
-            <p className="mt-6 max-w-xl text-lg text-white/70">
+            <p className="mt-4 max-w-xl text-base text-white/70 sm:text-lg">
               Тысячи верифицированных производителей, каталог товаров,
               логистика и переводы. Всё для безопасного выхода на рынок.
             </p>
 
-            <div className="mt-8 flex flex-col gap-2 rounded-xl bg-white/10 p-2 backdrop-blur-sm sm:flex-row">
+            <div className="mt-6 flex flex-col gap-2 rounded-xl bg-white/10 p-2 backdrop-blur-sm sm:flex-row">
               <div className="flex flex-1 items-center gap-2 px-3">
-                <Icon name="Search" size={20} className="text-white/60" />
+                <Icon name="Search" size={20} className="text-white/60 shrink-0" />
                 <Input
                   placeholder="Найти поставщика или товар..."
-                  className="border-0 bg-transparent text-white placeholder:text-white/50 focus-visible:ring-0"
+                  className="border-0 bg-transparent text-white placeholder:text-white/50 focus-visible:ring-0 h-11 text-base"
+                  onKeyDown={(e) => { if (e.key === 'Enter') navigate('/suppliers'); }}
                 />
               </div>
               <Button
                 size="lg"
-                className="bg-gold text-gold-foreground hover:bg-gold/90"
+                className="h-11 bg-gold text-gold-foreground hover:bg-gold/90"
+                onClick={() => navigate('/suppliers')}
               >
                 Искать
               </Button>
@@ -267,11 +294,11 @@ const Index = () => {
       </section>
 
       {/* Categories */}
-      <section className="container py-20">
-        <div className="mb-10 flex flex-wrap items-end justify-between gap-4">
+      <section className="container py-12 md:py-20">
+        <div className="mb-6 flex flex-wrap items-end justify-between gap-3">
           <div>
             <p className="font-500 text-gold">Каталог товаров</p>
-            <h2 className="font-display text-3xl font-700 text-navy md:text-4xl">
+            <h2 className="font-display text-2xl font-700 text-navy sm:text-3xl md:text-4xl">
               Поиск по категориям
             </h2>
           </div>
@@ -280,20 +307,20 @@ const Index = () => {
             <Icon name="ArrowRight" size={16} className="ml-1" />
           </Button>
         </div>
-        <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
+        <div className="grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-4">
           {CATEGORIES.map((c) => (
             <Card
               key={c.name}
               className="hover-lift cursor-pointer border-border"
               onClick={() => navigate(`/suppliers?category=${encodeURIComponent(c.name)}`)}
             >
-              <CardContent className="flex flex-col gap-3 p-6">
-                <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-secondary text-navy">
-                  <Icon name={c.icon} size={24} />
+              <CardContent className="flex flex-col gap-2 p-3 sm:gap-3 sm:p-6">
+                <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-secondary text-navy sm:h-12 sm:w-12">
+                  <Icon name={c.icon} size={20} />
                 </div>
                 <div>
-                  <div className="font-600 text-navy">{c.name}</div>
-                  <div className="text-sm text-muted-foreground">
+                  <div className="text-sm font-600 text-navy sm:text-base">{c.name}</div>
+                  <div className="text-xs text-muted-foreground sm:text-sm">
                     {c.count} товаров
                   </div>
                 </div>
@@ -304,12 +331,12 @@ const Index = () => {
       </section>
 
       {/* Suppliers */}
-      <section className="bg-secondary/50 py-20">
+      <section className="bg-secondary/50 py-12 md:py-20">
         <div className="container">
-          <div className="mb-8 flex flex-wrap items-end justify-between gap-4">
+          <div className="mb-5 flex flex-wrap items-end justify-between gap-3">
             <div>
               <p className="font-500 text-gold">Каталог поставщиков</p>
-              <h2 className="font-display text-3xl font-700 text-navy md:text-4xl">
+              <h2 className="font-display text-2xl font-700 text-navy sm:text-3xl md:text-4xl">
                 Проверенные производители
               </h2>
             </div>
@@ -390,11 +417,11 @@ const Index = () => {
       </section>
 
       {/* Seller dashboard preview */}
-      <section className="container py-20">
-        <div className="grid items-center gap-10 lg:grid-cols-2">
+      <section className="container py-12 md:py-20">
+        <div className="grid items-center gap-8 lg:grid-cols-2">
           <div>
             <p className="font-500 text-gold">Личный кабинет</p>
-            <h2 className="font-display text-3xl font-700 text-navy md:text-4xl">
+            <h2 className="font-display text-2xl font-700 text-navy sm:text-3xl md:text-4xl">
               Управляйте бизнесом на российском рынке
             </h2>
             <p className="mt-4 text-muted-foreground">
@@ -495,12 +522,12 @@ const Index = () => {
       </section>
 
       {/* Logistics */}
-      <section className="bg-navy-deep py-20 text-white">
+      <section className="bg-navy-deep py-12 text-white md:py-20">
         <div className="container">
-          <div className="mb-10 flex flex-wrap items-end justify-between gap-4">
+          <div className="mb-7 flex flex-wrap items-end justify-between gap-3">
             <div>
               <p className="font-500 text-gold">Логистика</p>
-              <h2 className="font-display text-3xl font-700 md:text-4xl">
+              <h2 className="font-display text-2xl font-700 sm:text-3xl md:text-4xl">
                 Доставка из Китая под ключ
               </h2>
             </div>
@@ -536,11 +563,11 @@ const Index = () => {
       </section>
 
       {/* News */}
-      <section className="container py-20">
-        <div className="mb-10 flex flex-wrap items-end justify-between gap-4">
+      <section className="container py-12 md:py-20">
+        <div className="mb-6 flex flex-wrap items-end justify-between gap-3">
           <div>
             <p className="font-500 text-gold">Блог и новости</p>
-            <h2 className="font-display text-3xl font-700 text-navy md:text-4xl">
+            <h2 className="font-display text-2xl font-700 text-navy sm:text-3xl md:text-4xl">
               Торговля Китай — Россия
             </h2>
           </div>
@@ -571,11 +598,11 @@ const Index = () => {
       </section>
 
       {/* Contact form */}
-      <section className="bg-secondary/50 py-20" id="contacts">
-        <div className="container grid gap-10 lg:grid-cols-2">
+      <section className="bg-secondary/50 py-12 md:py-20" id="contacts">
+        <div className="container grid gap-8 lg:grid-cols-2">
           <div>
             <p className="font-500 text-gold">Контакты</p>
-            <h2 className="font-display text-3xl font-700 text-navy md:text-4xl">
+            <h2 className="font-display text-2xl font-700 text-navy sm:text-3xl md:text-4xl">
               Отправьте заявку — мы найдём поставщика
             </h2>
             <p className="mt-4 text-muted-foreground">
@@ -625,17 +652,17 @@ const Index = () => {
               ) : (
                 <>
                   <h3 className="font-display text-lg font-600 text-navy mb-4">Оставьте заявку</h3>
-                  <div className="grid gap-3 sm:grid-cols-2">
-                    <Input placeholder="Имя *" value={contactForm.name} onChange={(e) => setContact('name', e.target.value)} />
-                    <Input placeholder="Компания" value={contactForm.company} onChange={(e) => setContact('company', e.target.value)} />
+                  <div className="grid gap-3 grid-cols-1 sm:grid-cols-2">
+                    <Input placeholder="Имя *" value={contactForm.name} onChange={(e) => setContact('name', e.target.value)} className="h-11" />
+                    <Input placeholder="Компания" value={contactForm.company} onChange={(e) => setContact('company', e.target.value)} className="h-11" />
                   </div>
-                  <div className="mt-3 grid gap-3 sm:grid-cols-2">
-                    <Input placeholder="Email" type="email" value={contactForm.email} onChange={(e) => setContact('email', e.target.value)} />
-                    <Input placeholder="Телефон" value={contactForm.phone} onChange={(e) => setContact('phone', e.target.value)} />
+                  <div className="mt-3 grid gap-3 grid-cols-1 sm:grid-cols-2">
+                    <Input placeholder="Email" type="email" value={contactForm.email} onChange={(e) => setContact('email', e.target.value)} className="h-11" />
+                    <Input placeholder="Телефон" value={contactForm.phone} onChange={(e) => setContact('phone', e.target.value)} className="h-11" />
                   </div>
-                  <div className="mt-3 grid gap-3 sm:grid-cols-2">
-                    <Input placeholder="Какой товар ищете?" value={contactForm.product_interest} onChange={(e) => setContact('product_interest', e.target.value)} />
-                    <Input placeholder="Бюджет (напр. $5 000)" value={contactForm.budget} onChange={(e) => setContact('budget', e.target.value)} />
+                  <div className="mt-3 grid gap-3 grid-cols-1 sm:grid-cols-2">
+                    <Input placeholder="Какой товар ищете?" value={contactForm.product_interest} onChange={(e) => setContact('product_interest', e.target.value)} className="h-11" />
+                    <Input placeholder="Бюджет (напр. $5 000)" value={contactForm.budget} onChange={(e) => setContact('budget', e.target.value)} className="h-11" />
                   </div>
                   <Textarea
                     placeholder="Дополнительные требования: объём, упаковка, сертификаты..."

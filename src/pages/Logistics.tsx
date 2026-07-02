@@ -109,7 +109,7 @@ const CompanyCard = ({ c, onSelect }: { c: LogisticsCompany; onSelect: (c: Logis
     className="hover-lift cursor-pointer border-border"
     onClick={() => onSelect(c)}
   >
-    <CardHeader className="pb-3">
+    <CardHeader className="p-4 pb-3">
       <div className="flex items-start justify-between gap-3">
         <div className="flex items-center gap-3">
           <div className="flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden rounded-xl border border-border bg-secondary">
@@ -138,7 +138,7 @@ const CompanyCard = ({ c, onSelect }: { c: LogisticsCompany; onSelect: (c: Logis
         </div>
       </div>
     </CardHeader>
-    <CardContent className="space-y-3 pt-0">
+    <CardContent className="space-y-3 px-4 pb-4 pt-0">
       {c.description && (
         <p className="line-clamp-2 text-sm text-muted-foreground">{c.description}</p>
       )}
@@ -439,12 +439,12 @@ const Logistics = () => {
       </header>
 
       {/* Hero */}
-      <section className="border-b border-border bg-navy-deep py-16 text-white">
+      <section className="border-b border-border bg-navy-deep py-10 md:py-16 text-white">
         <div className="container">
           <p className="font-500 text-gold">Логистика</p>
-          <h1 className="font-display text-4xl font-700 md:text-5xl">Доставка из Китая в Россию</h1>
+          <h1 className="font-display text-2xl sm:text-3xl md:text-4xl font-700 md:text-5xl">Доставка из Китая в Россию</h1>
           <p className="mt-3 max-w-xl text-white/70">Проверенные логистические компании — море, ж/д, авиа и авто. Реальные отзывы клиентов.</p>
-          <div className="mt-6 flex flex-wrap gap-3">
+          <div className="mt-6 grid grid-cols-2 gap-2 sm:flex sm:flex-wrap sm:gap-3">
             {[
               { icon: 'Ship', label: 'Море', time: '18–35 дней' },
               { icon: 'Train', label: 'Ж/д', time: '12–20 дней' },
@@ -474,7 +474,7 @@ const Logistics = () => {
             <div className="mb-6 flex flex-wrap gap-2">
               <button
                 onClick={() => setActiveType('')}
-                className={`rounded-full border px-4 py-1.5 text-sm font-500 transition-colors ${!activeType ? 'border-navy bg-navy text-white' : 'border-border text-muted-foreground hover:border-navy'}`}
+                className={`rounded-full border px-3 py-2.5 text-sm font-500 transition-colors ${!activeType ? 'border-navy bg-navy text-white' : 'border-border text-muted-foreground hover:border-navy'}`}
               >
                 Все виды
               </button>
@@ -482,7 +482,7 @@ const Logistics = () => {
                 <button
                   key={t}
                   onClick={() => setActiveType(activeType === t ? '' : t)}
-                  className={`flex items-center gap-1.5 rounded-full border px-4 py-1.5 text-sm font-500 transition-colors ${activeType === t ? 'border-navy bg-navy text-white' : 'border-border text-muted-foreground hover:border-navy'}`}
+                  className={`flex items-center gap-1.5 rounded-full border px-3 py-2.5 text-sm font-500 transition-colors ${activeType === t ? 'border-navy bg-navy text-white' : 'border-border text-muted-foreground hover:border-navy'}`}
                 >
                   <Icon name={TYPE_ICON[t] || 'Truck'} size={14} />
                   {t}

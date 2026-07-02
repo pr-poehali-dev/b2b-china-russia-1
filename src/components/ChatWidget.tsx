@@ -19,10 +19,10 @@ const Bubble = ({ msg }: { msg: ChatMessage }) => {
       <div className={`max-w-[80%] rounded-2xl px-3 py-2 text-sm ${isVisitor ? 'bg-navy text-white rounded-br-sm' : 'bg-secondary text-foreground rounded-bl-sm'}`}>
         {msg.photo_url && (
           <a href={msg.photo_url} target="_blank" rel="noreferrer">
-            <img src={msg.photo_url} alt="фото" className="mb-1 max-h-40 rounded-lg object-cover cursor-pointer" />
+            <img src={msg.photo_url} alt="фото" className="mb-1 max-h-32 rounded-lg object-cover cursor-pointer" />
           </a>
         )}
-        {msg.text && <p className="leading-snug">{msg.text}</p>}
+        {msg.text && <p className="leading-snug break-words">{msg.text}</p>}
         <p className={`mt-0.5 text-[10px] ${isVisitor ? 'text-white/60' : 'text-muted-foreground'}`}>
           {new Date(msg.created_at).toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' })}
         </p>
@@ -72,7 +72,6 @@ const ChatWidget = () => {
 
   useEffect(() => { if (open) { setUnread(0); scrollBottom(); } }, [open]);
 
-  // auto-resume if session exists
   useEffect(() => {
     if (sessionId && stage === 'intro') {
       chatApi.poll(sessionId, 0).then(d => {
@@ -90,7 +89,6 @@ const ChatWidget = () => {
     const data = await chatApi.init(name, email);
     setSessionIdState(data.session_id);
     setSessionId(data.session_id);
-    // load initial messages
     const msgs = await chatApi.poll(data.session_id, 0);
     setMessages(msgs.messages || []);
     if (msgs.messages?.length) setLastId(msgs.messages[msgs.messages.length - 1].id);
@@ -121,14 +119,16 @@ const ChatWidget = () => {
     finally { setSending(false); }
   };
 
-  const handleKey = (e: React.KeyboardEvent) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send(); } };
+  const handleKey = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send(); }
+  };
 
   return (
     <>
       {/* Floating button */}
       <button
         onClick={() => setOpen(o => !o)}
-        className="fixed bottom-6 right-6 z-[9999] flex h-14 w-14 items-center justify-center rounded-full bg-navy shadow-lg hover:bg-navy-deep transition-colors"
+        className="fixed bottom-4 right-4 z-[9999] flex h-14 w-14 items-center justify-center rounded-full bg-navy shadow-lg hover:bg-navy-deep transition-colors sm:bottom-6 sm:right-6"
         style={{ boxShadow: '0 4px 24px hsl(218 62% 18% / 0.35)' }}
       >
         {open
@@ -142,34 +142,59 @@ const ChatWidget = () => {
         )}
       </button>
 
-      {/* Chat window */}
+      {/* Chat window — full screen on mobile, popup on desktop */}
       {open && (
-        <div className="fixed bottom-24 right-6 z-[9998] flex w-80 flex-col overflow-hidden rounded-2xl border border-border bg-background shadow-2xl"
-          style={{ height: '480px', boxShadow: '0 8px 40px hsl(218 62% 18% / 0.25)' }}>
-
+        <div
+          className="fixed z-[9998] flex flex-col overflow-hidden border border-border bg-background shadow-2xl
+            inset-0 rounded-none
+            sm:inset-auto sm:bottom-24 sm:right-6 sm:w-80 sm:rounded-2xl"
+          style={{ height: undefined, maxHeight: '100dvh' }}
+        >
           {/* Header */}
-          <div className="flex items-center gap-3 bg-navy px-4 py-3">
+          <div className="flex shrink-0 items-center gap-3 bg-navy px-4 py-3">
             <div className="flex h-9 w-9 items-center justify-center rounded-full bg-gold text-gold-foreground font-display font-700 text-sm">CB</div>
             <div>
               <div className="font-600 text-white text-sm">ChineseBridge</div>
               <div className="flex items-center gap-1 text-xs text-white/60">
                 <span className="h-1.5 w-1.5 rounded-full bg-green-400" />
-                Онлайн
+                Онлайн · ответим быстро
               </div>
             </div>
-            <button className="ml-auto text-white/60 hover:text-white" onClick={() => setOpen(false)}>
-              <Icon name="Minus" size={18} />
+            <button
+              className="ml-auto flex h-10 w-10 items-center justify-center rounded-full text-white/60 hover:bg-white/10 hover:text-white transition-colors"
+              onClick={() => setOpen(false)}
+            >
+              <Icon name="X" size={20} />
             </button>
           </div>
 
           {stage === 'intro' ? (
-            /* Intro form */
-            <div className="flex flex-col gap-3 p-5 flex-1 justify-center">
-              <p className="text-sm text-muted-foreground text-center">Привет! Как вас зовут?</p>
-              <Input placeholder="Ваше имя *" value={name} onChange={e => setName(e.target.value)}
-                onKeyDown={e => { if (e.key === 'Enter') startChat(); }} />
-              <Input placeholder="Email (необязательно)" value={email} onChange={e => setEmail(e.target.value)} />
-              <Button className="bg-gold text-gold-foreground hover:bg-gold/90" disabled={!name.trim()} onClick={startChat}>
+            <div className="flex flex-col gap-4 p-5 flex-1 justify-center max-w-sm mx-auto w-full">
+              <div className="text-center">
+                <div className="mx-auto mb-3 flex h-14 w-14 items-center justify-center rounded-full bg-gold/15">
+                  <Icon name="MessageCircle" size={28} className="text-gold" />
+                </div>
+                <p className="font-600 text-navy">Привет! Как вас зовут?</p>
+                <p className="text-sm text-muted-foreground mt-1">Ответим в течение нескольких минут</p>
+              </div>
+              <Input
+                placeholder="Ваше имя *"
+                value={name}
+                onChange={e => setName(e.target.value)}
+                onKeyDown={e => { if (e.key === 'Enter') startChat(); }}
+                className="h-12 text-base"
+              />
+              <Input
+                placeholder="Email (необязательно)"
+                value={email}
+                onChange={e => setEmail(e.target.value)}
+                className="h-12 text-base"
+              />
+              <Button
+                className="h-12 bg-gold text-gold-foreground hover:bg-gold/90 text-base"
+                disabled={!name.trim()}
+                onClick={startChat}
+              >
                 Начать чат
               </Button>
             </div>
@@ -183,23 +208,26 @@ const ChatWidget = () => {
 
               {/* Photo preview */}
               {photoPreview && (
-                <div className="relative mx-3 mb-1 w-16">
+                <div className="relative mx-3 mb-1 w-16 shrink-0">
                   <img src={photoPreview} className="h-16 w-16 rounded-lg object-cover border border-border" />
-                  <button className="absolute -right-1 -top-1 rounded-full bg-navy p-0.5" onClick={() => { setPhoto(null); setPhotoPreview(null); }}>
+                  <button
+                    className="absolute -right-1 -top-1 rounded-full bg-navy p-1"
+                    onClick={() => { setPhoto(null); setPhotoPreview(null); }}
+                  >
                     <Icon name="X" size={10} className="text-white" />
                   </button>
                 </div>
               )}
 
-              {/* Input */}
-              <div className="border-t border-border p-2 flex gap-1.5 items-end">
+              {/* Input row */}
+              <div className="shrink-0 border-t border-border p-2 flex gap-2 items-end pb-safe">
                 <input ref={fileInputRef} type="file" accept="image/*" className="hidden"
                   onChange={e => e.target.files?.[0] && handlePhoto(e.target.files[0])} />
                 <button
-                  className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg hover:bg-secondary transition-colors text-muted-foreground hover:text-gold"
+                  className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl hover:bg-secondary transition-colors text-muted-foreground hover:text-gold"
                   onClick={() => fileInputRef.current?.click()}
                 >
-                  <Icon name="Paperclip" size={18} />
+                  <Icon name="Paperclip" size={20} />
                 </button>
                 <textarea
                   value={text}
@@ -207,15 +235,17 @@ const ChatWidget = () => {
                   onKeyDown={handleKey}
                   placeholder="Напишите сообщение..."
                   rows={1}
-                  className="flex-1 resize-none rounded-lg border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-gold min-h-[36px] max-h-24"
-                  style={{ lineHeight: '1.4' }}
+                  className="flex-1 resize-none rounded-xl border border-input bg-background px-3 py-2.5 text-base focus:outline-none focus:ring-1 focus:ring-gold min-h-[44px] max-h-24"
+                  style={{ lineHeight: '1.4', fontSize: '16px' }}
                 />
                 <button
                   onClick={send}
                   disabled={sending || (!text.trim() && !photo)}
-                  className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-gold text-gold-foreground hover:bg-gold/90 disabled:opacity-40 transition-colors"
+                  className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-gold text-gold-foreground hover:bg-gold/90 disabled:opacity-40 transition-colors"
                 >
-                  {sending ? <Icon name="Loader2" size={16} className="animate-spin" /> : <Icon name="Send" size={16} />}
+                  {sending
+                    ? <Icon name="Loader2" size={18} className="animate-spin" />
+                    : <Icon name="Send" size={18} />}
                 </button>
               </div>
             </>

@@ -16,7 +16,7 @@ const TAG_COLORS: Record<string, string> = {
 
 const ArticleCard = ({ a, onClick }: { a: Article; onClick: () => void }) => (
   <Card className="hover-lift cursor-pointer border-border overflow-hidden" onClick={onClick}>
-    <div className="h-44 overflow-hidden bg-secondary">
+    <div className="h-36 sm:h-44 overflow-hidden bg-secondary">
       {a.cover_url
         ? <img src={a.cover_url} alt={a.title} className="h-full w-full object-cover transition-transform hover:scale-105" onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} />
         : <div className="flex h-full items-center justify-center"><Icon name="Newspaper" size={40} className="text-muted-foreground" /></div>}
@@ -97,10 +97,10 @@ const Blog = () => {
       </header>
 
       {/* Hero */}
-      <section className="border-b border-border bg-navy-deep py-16 text-white">
+      <section className="border-b border-border bg-navy-deep py-10 md:py-16 text-white">
         <div className="container">
           <p className="font-500 text-gold">Медиа</p>
-          <h1 className="font-display text-4xl font-700 md:text-5xl">Новости и аналитика</h1>
+          <h1 className="font-display text-2xl sm:text-3xl md:text-4xl font-700 md:text-5xl">Новости и аналитика</h1>
           <p className="mt-3 max-w-xl text-white/70">Торговля Китай — Россия: актуальные новости, изменения в регулировании, логистика и рынок</p>
         </div>
       </section>
@@ -108,7 +108,7 @@ const Blog = () => {
       <div className="container py-10">
         {/* Tags filter */}
         {tags.length > 0 && (
-          <div className="mb-8 flex flex-wrap gap-2">
+          <div className="mb-8 flex flex-wrap gap-2 overflow-x-auto pb-1">
             <button
               onClick={() => setTag('')}
               className={`rounded-full border px-4 py-1.5 text-sm font-500 transition-colors ${!tag ? 'border-navy bg-navy text-white' : 'border-border text-muted-foreground hover:border-navy'}`}
@@ -149,12 +149,12 @@ const Blog = () => {
                 onClick={() => navigate(`/blog/${articles[0].slug}`)}
               >
                 <div className="grid md:grid-cols-2">
-                  <div className="h-56 overflow-hidden bg-secondary md:h-auto">
+                  <div className="h-44 sm:h-56 overflow-hidden bg-secondary md:h-auto">
                     {articles[0].cover_url
                       ? <img src={articles[0].cover_url} alt={articles[0].title} className="h-full w-full object-cover" onError={(e) => { (e.target as HTMLImageElement).style.display='none'; }} />
                       : <div className="flex h-full items-center justify-center"><Icon name="Newspaper" size={48} className="text-muted-foreground" /></div>}
                   </div>
-                  <div className="flex flex-col justify-center p-8">
+                  <div className="flex flex-col justify-center p-4 sm:p-8">
                     <Badge className={TAG_COLORS[articles[0].tag] || TAG_COLORS['Новости']}>{articles[0].tag}</Badge>
                     <h2 className="mt-3 font-display text-2xl font-700 leading-snug text-navy">{articles[0].title}</h2>
                     {articles[0].excerpt && <p className="mt-2 text-muted-foreground">{articles[0].excerpt}</p>}

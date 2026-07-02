@@ -838,19 +838,19 @@ const ProfileTab = ({ seller, onSaved }: { seller: Seller; onSaved: (s: Seller) 
         <CardHeader><CardTitle className="font-display text-lg text-navy">Описание компании</CardTitle></CardHeader>
         <CardContent className="space-y-3">
           <Textarea placeholder="Расскажите о компании: специализация, опыт, преимущества..." value={form.description || ''} onChange={(e) => set('description', e.target.value)} className="min-h-32" />
-          <div className="grid grid-cols-2 gap-3">
-            <select className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm" value={form.province || ''} onChange={(e) => set('province', e.target.value)}>
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+            <select className="h-11 w-full rounded-md border border-input bg-background px-3 text-sm" value={form.province || ''} onChange={(e) => set('province', e.target.value)}>
               <option value="">Провинция Китая</option>
               {PROVINCES.map((p) => <option key={p}>{p}</option>)}
             </select>
-            <select className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm" value={form.category || ''} onChange={(e) => set('category', e.target.value)}>
+            <select className="h-11 w-full rounded-md border border-input bg-background px-3 text-sm" value={form.category || ''} onChange={(e) => set('category', e.target.value)}>
               <option value="">Категория товаров</option>
               {CATEGORIES.map((c) => <option key={c}>{c}</option>)}
             </select>
           </div>
-          <div className="grid grid-cols-2 gap-3">
-            <Input placeholder="Год основания" type="number" value={form.founded_year || ''} onChange={(e) => set('founded_year', parseInt(e.target.value) || 0)} />
-            <Input placeholder="Сотрудников (напр. 50–200)" value={form.employees || ''} onChange={(e) => set('employees', e.target.value)} />
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+            <Input placeholder="Год основания" type="number" value={form.founded_year || ''} onChange={(e) => set('founded_year', parseInt(e.target.value) || 0)} className="h-11" />
+            <Input placeholder="Сотрудников (напр. 50–200)" value={form.employees || ''} onChange={(e) => set('employees', e.target.value)} className="h-11" />
           </div>
           <Input placeholder="Сайт компании" value={form.website || ''} onChange={(e) => set('website', e.target.value)} />
         </CardContent>
@@ -1283,15 +1283,15 @@ const Cabinet = () => {
         </div>
       </header>
 
-      <main className="container py-8">
-        <div className="mb-6 flex items-end justify-between">
+      <main className="container py-5 md:py-8">
+        <div className="mb-4 flex items-end justify-between">
           <div>
-            <h1 className="font-display text-3xl font-700 text-navy">Личный кабинет</h1>
-            <p className="text-muted-foreground">{seller?.company_name}</p>
+            <h1 className="font-display text-2xl font-700 text-navy sm:text-3xl">Личный кабинет</h1>
+            <p className="text-sm text-muted-foreground">{seller?.company_name}</p>
           </div>
         </div>
 
-        <div className="mb-8 grid grid-cols-2 gap-4 sm:grid-cols-2">
+        <div className="mb-5 grid grid-cols-2 gap-3 sm:gap-4">
           {[
             { v: loading ? '—' : stats.views, l: 'Просмотры', icon: 'Eye' },
             { v: loading ? '—' : stats.leads, l: 'Заявки', icon: 'MessageSquare' },
@@ -1311,15 +1311,17 @@ const Cabinet = () => {
         </div>
 
         <Tabs defaultValue="profile">
-          <TabsList className="flex-wrap h-auto gap-1">
-            <TabsTrigger value="profile"><Icon name="Building2" size={15} className="mr-1" />Профиль компании</TabsTrigger>
-            <TabsTrigger value="reels"><Icon name="Clapperboard" size={15} className="mr-1" />Видео-рилсы</TabsTrigger>
-            <TabsTrigger value="certs"><Icon name="Award" size={15} className="mr-1" />Сертификаты</TabsTrigger>
-            <TabsTrigger value="leads"><Icon name="Inbox" size={15} className="mr-1" />Заявки {stats.leads > 0 && <span className="ml-1 rounded-full bg-gold text-gold-foreground text-xs px-1.5">{stats.leads}</span>}</TabsTrigger>
-            <TabsTrigger value="premium"><Icon name="Sparkles" size={15} className="mr-1" />Премиум</TabsTrigger>
-            <TabsTrigger value="blog"><Icon name="Newspaper" size={15} className="mr-1" />Блог</TabsTrigger>
-            <TabsTrigger value="contacts"><Icon name="MessageCircle" size={15} className="mr-1" />Заявки с сайта</TabsTrigger>
-          </TabsList>
+          <div className="overflow-x-auto pb-1 -mx-4 px-4 sm:mx-0 sm:px-0">
+            <TabsList className="flex h-auto w-max gap-1 sm:flex-wrap sm:w-auto">
+              <TabsTrigger value="profile" className="shrink-0"><Icon name="Building2" size={15} className="mr-1" />Профиль</TabsTrigger>
+              <TabsTrigger value="reels" className="shrink-0"><Icon name="Clapperboard" size={15} className="mr-1" />Рилсы</TabsTrigger>
+              <TabsTrigger value="certs" className="shrink-0"><Icon name="Award" size={15} className="mr-1" />Сертификаты</TabsTrigger>
+              <TabsTrigger value="leads" className="shrink-0"><Icon name="Inbox" size={15} className="mr-1" />Заявки {stats.leads > 0 && <span className="ml-1 rounded-full bg-gold text-gold-foreground text-xs px-1.5">{stats.leads}</span>}</TabsTrigger>
+              <TabsTrigger value="premium" className="shrink-0"><Icon name="Sparkles" size={15} className="mr-1" />Премиум</TabsTrigger>
+              <TabsTrigger value="blog" className="shrink-0"><Icon name="Newspaper" size={15} className="mr-1" />Блог</TabsTrigger>
+              <TabsTrigger value="contacts" className="shrink-0"><Icon name="MessageCircle" size={15} className="mr-1" />Заявки с сайта</TabsTrigger>
+            </TabsList>
+          </div>
 
           <div className="mt-6">
             <TabsContent value="profile">

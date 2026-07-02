@@ -49,7 +49,7 @@ const ProductModal = ({ product, seller, onClose }: {
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm" onClick={onClose}>
+    <div className="fixed inset-0 z-50 flex items-center justify-center sm:p-4 bg-black/60 backdrop-blur-sm" onClick={onClose}>
       <div
         className="relative w-full max-w-2xl max-h-[90vh] overflow-y-auto rounded-2xl bg-background shadow-2xl"
         onClick={(e) => e.stopPropagation()}
@@ -145,8 +145,10 @@ const ProductModal = ({ product, seller, onClose }: {
           ) : (
             <div className="mt-5 space-y-3 rounded-xl border border-border p-4">
               <p className="font-600 text-navy text-sm">Заявка на товар: {product.name}</p>
-              <Input placeholder="Ваше имя / компания *" value={form.buyer_name} onChange={(e) => setForm(f => ({ ...f, buyer_name: e.target.value }))} />
-              <Input placeholder="Email или телефон *" value={form.buyer_contact} onChange={(e) => setForm(f => ({ ...f, buyer_contact: e.target.value }))} />
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <Input placeholder="Ваше имя / компания *" value={form.buyer_name} onChange={(e) => setForm(f => ({ ...f, buyer_name: e.target.value }))} />
+                <Input placeholder="Email или телефон *" value={form.buyer_contact} onChange={(e) => setForm(f => ({ ...f, buyer_contact: e.target.value }))} />
+              </div>
               <Textarea
                 placeholder="Количество, требования, вопросы..."
                 className="min-h-20"
@@ -320,7 +322,7 @@ const SupplierProfile = () => {
       {/* Hero */}
       <section className="border-b border-border bg-secondary/30">
         <div className="container py-10">
-          <div className="flex flex-col gap-6 md:flex-row md:items-start md:justify-between">
+          <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
             <div className="flex gap-5">
               <div className="flex h-20 w-20 shrink-0 items-center justify-center overflow-hidden rounded-2xl border border-border bg-background shadow-sm">
                 {seller.logo_url ? (
@@ -360,7 +362,7 @@ const SupplierProfile = () => {
             </div>
 
             {/* Sidebar contacts */}
-            <div className="w-full md:w-72 shrink-0">
+            <div className="w-full md:w-72 shrink-0 md:shrink-0">
               <Card className="border-border">
                 <CardContent className="space-y-3 p-5">
                   <LeadDialog seller={seller} />
@@ -403,7 +405,7 @@ const SupplierProfile = () => {
         </div>
       </section>
 
-      <div className="container py-10 space-y-12">
+      <div className="container py-6 md:py-10 space-y-8 md:space-y-12">
         {/* Products */}
         {products.length > 0 && (
           <section>

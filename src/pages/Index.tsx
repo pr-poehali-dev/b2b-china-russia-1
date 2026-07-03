@@ -304,10 +304,8 @@ const Index = () => {
       <section className="container py-12 md:py-20">
         <div className="grid gap-10 md:grid-cols-2 md:items-center md:gap-16">
           <div>
-            <p className="font-500 text-gold">О платформе</p>
-            <h2 className="font-display text-2xl font-700 text-navy sm:text-3xl md:text-4xl">
-              Витрина китайских производителей для российского бизнеса
-            </h2>
+            <p className="font-500 text-gold">Добро пожаловать на платформу</p>
+            <h2 className="font-display text-2xl font-700 text-navy sm:text-3xl md:text-4xl">Витрина китайских производителей для российского бизнеса</h2>
             <p className="mt-4 text-base text-muted-foreground sm:text-lg">
               Между Китаем и Россией остаётся высокий спрос на поиск надёжных поставщиков,
               но многие китайские компании не умеют эффективно продвигаться на российском рынке,

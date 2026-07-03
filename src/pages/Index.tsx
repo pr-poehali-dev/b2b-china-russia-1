@@ -773,7 +773,12 @@ const Index = () => {
               </Button>
             </nav>
           </div>
-          <div className="mt-8 border-t border-white/10 pt-6 text-sm">© 2026 ChineseCart.ru — B2B платформа поставщиков Китай — Россия </div>
+          <div className="mt-8 flex flex-col gap-2 border-t border-white/10 pt-6 text-sm sm:flex-row sm:items-center sm:justify-between">
+            <span>© 2026 ChineseCart.ru — B2B платформа поставщиков Китай — Россия</span>
+            <button onClick={() => navigate('/admin')} className="text-left text-white/40 hover:text-gold transition-colors sm:text-right">
+              Вход для администратора
+            </button>
+          </div>
         </div>
       </footer>
     </div>

@@ -199,6 +199,15 @@ const Index = () => {
           <div className="flex items-center gap-2">
             <CurrencyRate />
             <OnlineVisitors />
+            <Button
+              variant="outline"
+              size="sm"
+              className="hidden border-navy text-navy hover:bg-secondary sm:flex"
+              onClick={() => navigate('/account')}
+            >
+              <Icon name="User" size={15} className="mr-1.5" />
+              Личный кабинет
+            </Button>
             {/* Mobile hamburger */}
             <button
               className="flex h-10 w-10 items-center justify-center rounded-lg border border-border lg:hidden"
@@ -225,6 +234,13 @@ const Index = () => {
                   {item.label}
                 </a>
               ))}
+              <a
+                href="/account"
+                onClick={(e) => { e.preventDefault(); navigate('/account'); setMobileMenuOpen(false); }}
+                className="rounded-lg px-3 py-2.5 text-sm font-500 text-foreground hover:bg-secondary hover:text-navy transition-colors"
+              >
+                Личный кабинет
+              </a>
             </nav>
           </div>
         )}

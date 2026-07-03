@@ -234,11 +234,77 @@ def handler(event: dict, context) -> dict:
 
         # --- LEADS ---
         if action == 'lead_status' and method == 'POST':
+            new_status = body.get('status', 'Новая')
             cur.execute(
-                "UPDATE leads SET status=%s WHERE id=%s AND seller_id=%s",
-                (body.get('status', 'Новая'), body.get('id'), seller_id),
+                "UPDATE leads SET status=%s WHERE id=%s AND seller_id=%s RETURNING buyer_id, buyer_name",
+                (new_status, body.get('id'), seller_id),
             )
+            lead = cur.fetchone()
+            if lead and lead['buyer_id']:
+                cur.execute("SELECT company_name FROM sellers WHERE id=%s", (seller_id,))
+                seller_row = cur.fetchone()
+                cur.execute(
+                    "INSERT INTO buyer_notifications (buyer_id, type, title, message, seller_id) "
+                    "VALUES (%s, 'lead_status', %s, %s, %s)",
+                    (lead['buyer_id'], 'Статус заявки изменён',
+                     f"{seller_row['company_name'] if seller_row else 'Поставщик'}: статус вашей заявки — «{new_status}»",
+                     seller_id),
+                )
             return _resp(200, {'ok': True})
+
+        # --- BUYER CHATS ---
+        if action == 'buyer_chats' and method == 'GET':
+            cur.execute(
+                "SELECT c.id, c.buyer_id, b.name as buyer_name, b.company as buyer_company, "
+                "c.last_message_at, c.seller_unread, "
+                "(SELECT text FROM buyer_chat_messages WHERE chat_id = c.id ORDER BY created_at DESC LIMIT 1) as last_message "
+                "FROM buyer_chats c JOIN buyers b ON b.id = c.buyer_id "
+                "WHERE c.seller_id = %s ORDER BY c.last_message_at DESC",
+                (seller_id,),
+            )
+            return _resp(200, {'chats': [dict(r) for r in cur.fetchall()]})
+
+        if action == 'buyer_chat_messages' and method == 'GET':
+            chat_id = params.get('chat_id')
+            cur.execute("SELECT id FROM buyer_chats WHERE id=%s AND seller_id=%s", (chat_id, seller_id))
+            if not cur.fetchone():
+                return _resp(404, {'error': 'Чат не найден'})
+            cur.execute(
+                "SELECT id, sender, text, created_at FROM buyer_chat_messages WHERE chat_id=%s ORDER BY created_at ASC",
+                (chat_id,),
+            )
+            messages = cur.fetchall()
+            cur.execute("UPDATE buyer_chats SET seller_unread=0 WHERE id=%s", (chat_id,))
+            return _resp(200, {'messages': [dict(m) for m in messages]})
+
+        if action == 'buyer_chat_send' and method == 'POST':
+            chat_id = body.get('chat_id')
+            text = (body.get('text') or '').strip()
+            if not chat_id or not text:
+                return _resp(400, {'error': 'Укажите текст сообщения'})
+            cur.execute("SELECT buyer_id FROM buyer_chats WHERE id=%s AND seller_id=%s", (chat_id, seller_id))
+            chat = cur.fetchone()
+            if not chat:
+                return _resp(404, {'error': 'Чат не найден'})
+            cur.execute(
+                "INSERT INTO buyer_chat_messages (chat_id, sender, text) VALUES (%s, 'seller', %s) "
+                "RETURNING id, sender, text, created_at",
+                (chat_id, text),
+            )
+            msg = cur.fetchone()
+            cur.execute(
+                "UPDATE buyer_chats SET last_message_at=NOW(), buyer_unread = buyer_unread + 1 WHERE id=%s",
+                (chat_id,),
+            )
+            cur.execute("SELECT company_name FROM sellers WHERE id=%s", (seller_id,))
+            seller_row = cur.fetchone()
+            cur.execute(
+                "INSERT INTO buyer_notifications (buyer_id, type, title, message, seller_id) "
+                "VALUES (%s, 'chat_message', %s, %s, %s)",
+                (chat['buyer_id'], 'Новое сообщение',
+                 f"{seller_row['company_name'] if seller_row else 'Поставщик'}: {text[:100]}", seller_id),
+            )
+            return _resp(200, {'message': dict(msg)})
 
         # --- PREMIUM ---
         if action == 'buy_premium' and method == 'POST':

@@ -1,0 +1,8 @@
+{
+  "tests": [
+    {"name": "OPTIONS CORS", "method": "OPTIONS", "path": "/", "expectedStatus": 200},
+    {"name": "Login wrong password", "method": "POST", "path": "/?action=login", "body": {"email": "test@test.com", "password": "wrong"}, "expectedStatus": 401},
+    {"name": "Profile without token", "method": "GET", "path": "/?action=profile", "expectedStatus": 401},
+    {"name": "Favorites without token", "method": "GET", "path": "/?action=favorites", "expectedStatus": 401}
+  ]
+}

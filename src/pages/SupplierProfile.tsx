@@ -10,6 +10,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, Dialog
 import { toast } from '@/hooks/use-toast';
 import { supplierApi, type PublicSeller, type PublicProduct, type PublicCert, type PublicMedia } from '@/lib/supplierApi';
 import { feedApi, type FeedVideo } from '@/lib/feedApi';
+import { buyerApi, isBuyerAuthed } from '@/lib/buyerApi';
 
 // ---------- PRODUCT MODAL ----------
 const ProductModal = ({ product, seller, onClose }: {
@@ -167,6 +168,113 @@ const ProductModal = ({ product, seller, onClose }: {
         </div>
       </div>
     </div>
+  );
+};
+
+const FavoriteButton = ({ sellerId }: { sellerId: number }) => {
+  const [liked, setLiked] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    if (!isBuyerAuthed()) return;
+    buyerApi.checkFavorites('company').then((d) => setLiked(d.ids.includes(sellerId))).catch(() => {});
+  }, [sellerId]);
+
+  const toggle = async () => {
+    if (!isBuyerAuthed()) {
+      navigate('/account');
+      return;
+    }
+    setLoading(true);
+    try {
+      if (liked) {
+        await buyerApi.removeFavorite('company', sellerId);
+        setLiked(false);
+        toast({ title: 'Убрано из избранного' });
+      } else {
+        await buyerApi.addFavorite('company', sellerId);
+        setLiked(true);
+        toast({ title: 'Добавлено в избранное' });
+      }
+    } catch (e) {
+      toast({ title: 'Ошибка', description: (e as Error).message, variant: 'destructive' });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <Button variant="outline" className="w-full border-navy text-navy hover:bg-secondary" disabled={loading} onClick={toggle}>
+      <Icon name="Heart" size={16} className={`mr-2 ${liked ? 'fill-red-400 text-red-400' : ''}`} />
+      {liked ? 'В избранном' : 'В избранное'}
+    </Button>
+  );
+};
+
+const ProductFavoriteIcon = ({ productId }: { productId: number }) => {
+  const [liked, setLiked] = useState(false);
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    if (!isBuyerAuthed()) return;
+    buyerApi.checkFavorites('product').then((d) => setLiked(d.ids.includes(productId))).catch(() => {});
+  }, [productId]);
+
+  const toggle = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (!isBuyerAuthed()) {
+      navigate('/account');
+      return;
+    }
+    try {
+      if (liked) {
+        await buyerApi.removeFavorite('product', productId);
+        setLiked(false);
+      } else {
+        await buyerApi.addFavorite('product', productId);
+        setLiked(true);
+      }
+    } catch (err) {
+      toast({ title: 'Ошибка', description: (err as Error).message, variant: 'destructive' });
+    }
+  };
+
+  return (
+    <button
+      onClick={toggle}
+      className="absolute right-2 top-2 z-10 flex h-8 w-8 items-center justify-center rounded-full bg-white/90 shadow hover:bg-white transition-colors"
+    >
+      <Icon name="Heart" size={15} className={liked ? 'fill-red-400 text-red-400' : 'text-navy'} />
+    </button>
+  );
+};
+
+const ChatButton = ({ sellerId }: { sellerId: number }) => {
+  const navigate = useNavigate();
+  const [loading, setLoading] = useState(false);
+
+  const openChat = async () => {
+    if (!isBuyerAuthed()) {
+      navigate('/account');
+      return;
+    }
+    setLoading(true);
+    try {
+      await buyerApi.chatStart(sellerId);
+      navigate('/account');
+    } catch (e) {
+      toast({ title: 'Ошибка', description: (e as Error).message, variant: 'destructive' });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <Button variant="outline" className="w-full border-navy text-navy hover:bg-secondary" disabled={loading} onClick={openChat}>
+      <Icon name="MessageCircle" size={16} className="mr-2" />
+      Написать в чат
+    </Button>
   );
 };
 
@@ -400,6 +508,7 @@ const SupplierProfile = () => {
         setProducts(d.products);
         setCerts(d.certificates);
         setMedia(d.media);
+        if (isBuyerAuthed()) buyerApi.addView('company', Number(id)).catch(() => {});
       })
       .catch(() => toast({ title: 'Поставщик не найден', variant: 'destructive' }))
       .finally(() => setLoading(false));
@@ -513,6 +622,10 @@ const SupplierProfile = () => {
               <Card className="border-border">
                 <CardContent className="space-y-3 p-5">
                   <LeadDialog seller={seller} />
+                  <div className="grid grid-cols-2 gap-2">
+                    <FavoriteButton sellerId={seller.id} />
+                    <ChatButton sellerId={seller.id} />
+                  </div>
                   <div className="space-y-2 pt-1">
                     {seller.wechat && (
                       <div className="flex items-center gap-2 text-sm">
@@ -568,6 +681,7 @@ const SupplierProfile = () => {
                   onClick={() => setSelectedProduct(p)}
                 >
                   <div className="relative flex h-40 items-center justify-center overflow-hidden bg-secondary">
+                    <ProductFavoriteIcon productId={p.id} />
                     {p.image_url ? (
                       <img src={p.image_url} alt={p.name} className="h-full w-full object-cover transition-transform group-hover:scale-105" onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} />
                     ) : (

@@ -34,7 +34,7 @@ const NAV = [
 ];
 
 const FOOTER_PAGES = [
-  { label: 'Страница 1', href: '#' },
+  { label: 'Запуск бренда в Китае', href: '#' },
   { label: 'Страница 2', href: '#' },
   { label: 'Страница 3', href: '#' },
   { label: 'Страница 4', href: '#' },

@@ -1,5 +1,6 @@
 import json
 import os
+import urllib.request
 import psycopg2
 from psycopg2.extras import RealDictCursor
 
@@ -111,6 +112,42 @@ def handler(event: dict, context) -> dict:
                 (lid, lid, lid)
             )
             return _resp(200, {'review': dict(review)})
+
+        # --- CURRENCY RATE (CNY -> RUB), кэш на сутки ---
+        if action == 'rate' and method == 'GET':
+            cur.execute(
+                "SELECT rate, updated_at FROM exchange_rates "
+                "WHERE pair = 'CNY_RUB' AND updated_at > now() - interval '24 hours'"
+            )
+            cached = cur.fetchone()
+            if cached:
+                return _resp(200, {'rate': float(cached['rate']), 'updated_at': cached['updated_at'], 'cached': True})
+
+            rate = None
+            try:
+                req = urllib.request.Request(
+                    'https://www.cbr-xml-daily.ru/daily_json.js',
+                    headers={'User-Agent': 'Mozilla/5.0'}
+                )
+                with urllib.request.urlopen(req, timeout=5) as resp:
+                    data = json.loads(resp.read().decode('utf-8'))
+                cny = data['Valute']['CNY']
+                rate = round(float(cny['Value']) / float(cny['Nominal']), 4)
+            except Exception:
+                cur.execute("SELECT rate, updated_at FROM exchange_rates WHERE pair = 'CNY_RUB'")
+                stale = cur.fetchone()
+                if stale:
+                    return _resp(200, {'rate': float(stale['rate']), 'updated_at': stale['updated_at'], 'cached': True, 'stale': True})
+                return _resp(502, {'error': 'Не удалось получить курс валют'})
+
+            cur.execute(
+                "INSERT INTO exchange_rates (pair, rate, updated_at) VALUES ('CNY_RUB', %s, now()) "
+                "ON CONFLICT (pair) DO UPDATE SET rate = %s, updated_at = now() "
+                "RETURNING updated_at",
+                (rate, rate)
+            )
+            row = cur.fetchone()
+            return _resp(200, {'rate': rate, 'updated_at': row['updated_at'], 'cached': False})
 
         return _resp(404, {'error': 'Неизвестное действие'})
     finally:

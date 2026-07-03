@@ -52,4 +52,5 @@ export const logisticsApi = {
   get: (id: string) => get('get', { id }),
   addReview: (b: { logistics_id: number; author: string; company?: string; rating: number; text: string }) =>
     post('add_review', b),
+  rate: (): Promise<{ rate: number; updated_at: string; cached: boolean }> => get('rate'),
 };

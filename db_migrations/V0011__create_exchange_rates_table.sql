@@ -1,0 +1,5 @@
+CREATE TABLE IF NOT EXISTS exchange_rates (
+    pair VARCHAR(16) PRIMARY KEY,
+    rate NUMERIC(12,4) NOT NULL,
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);

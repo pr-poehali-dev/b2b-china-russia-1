@@ -24,6 +24,12 @@
       "path": "/?action=add_review",
       "body": {},
       "expectedStatus": 400
+    },
+    {
+      "name": "Currency rate",
+      "method": "GET",
+      "path": "/?action=rate",
+      "expectedStatus": 200
     }
   ]
 }

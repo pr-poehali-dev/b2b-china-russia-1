@@ -664,8 +664,7 @@ const Index = () => {
                   Смотреть видео
                 </Button>
                 <Button
-                  variant="outline"
-                  className="border-white/30 text-white hover:bg-white/10 h-12 px-6"
+                  className="bg-navy-deep text-white hover:bg-navy-deep/90 h-12 px-6"
                   onClick={() => navigate('/cabinet')}
                 >
                   Загрузить своё видео

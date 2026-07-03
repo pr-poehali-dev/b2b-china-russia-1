@@ -606,7 +606,7 @@ const Index = () => {
             </div>
             <Button
               variant="outline"
-              className="border-white/30 text-white hover:bg-white/10 hover:text-white"
+              className="border-white/30 bg-white/10 text-white hover:bg-white/10 hover:text-white"
               onClick={() => navigate('/logistics')}
             >
               Все компании

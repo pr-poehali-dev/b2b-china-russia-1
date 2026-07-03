@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Icon from '@/components/ui/icon';
+import Emoji3D from '@/components/ui/emoji3d';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -503,7 +504,10 @@ const Admin = () => {
             {loading ? (
               <div className="flex justify-center py-16"><Icon name="Loader2" size={32} className="animate-spin text-gold" /></div>
             ) : sellers.length === 0 ? (
-              <Card className="border-dashed"><CardContent className="py-10 text-center text-muted-foreground">Поставщиков пока нет</CardContent></Card>
+              <Card className="border-dashed"><CardContent className="flex flex-col items-center gap-2 py-10 text-center text-muted-foreground">
+                <Emoji3D name="Truck" size={48} />
+                Поставщиков пока нет
+              </CardContent></Card>
             ) : (
               <div className="space-y-3">
                 {sellers.map((s) => (
@@ -556,7 +560,10 @@ const Admin = () => {
             {loading ? (
               <div className="flex justify-center py-16"><Icon name="Loader2" size={32} className="animate-spin text-gold" /></div>
             ) : products.length === 0 ? (
-              <Card className="border-dashed"><CardContent className="py-10 text-center text-muted-foreground">Товаров пока нет</CardContent></Card>
+              <Card className="border-dashed"><CardContent className="flex flex-col items-center gap-2 py-10 text-center text-muted-foreground">
+                <Emoji3D name="PackagePlus" size={48} />
+                Товаров пока нет
+              </CardContent></Card>
             ) : (
               <div className="space-y-3">
                 {products.map((p) => (
@@ -566,7 +573,7 @@ const Admin = () => {
                         <div className="flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-lg border border-border bg-secondary">
                           {p.image_url
                             ? <img src={p.image_url} alt={p.name} className="h-full w-full object-cover" />
-                            : <Icon name="Package" size={20} className="text-muted-foreground" />
+                            : <Emoji3D name="Package" size={28} />
                           }
                         </div>
                         <div>
@@ -609,7 +616,10 @@ const Admin = () => {
             {loading ? (
               <div className="flex justify-center py-16"><Icon name="Loader2" size={32} className="animate-spin text-gold" /></div>
             ) : logistics.length === 0 ? (
-              <Card className="border-dashed"><CardContent className="py-10 text-center text-muted-foreground">Карго-компаний пока нет</CardContent></Card>
+              <Card className="border-dashed"><CardContent className="flex flex-col items-center gap-2 py-10 text-center text-muted-foreground">
+                <Emoji3D name="Truck" size={48} />
+                Карго-компаний пока нет
+              </CardContent></Card>
             ) : (
               <div className="space-y-3">
                 {logistics.map((l) => (
@@ -619,7 +629,7 @@ const Admin = () => {
                         <div className="flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-lg border border-border bg-secondary">
                           {l.logo_url
                             ? <img src={l.logo_url} alt={l.company_name} className="h-full w-full object-cover" />
-                            : <Icon name="Truck" size={20} className="text-muted-foreground" />
+                            : <Emoji3D name="Truck" size={28} />
                           }
                         </div>
                         <div>

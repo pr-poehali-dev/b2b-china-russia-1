@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { uploadPhoto, uploadVideo, importExcel } from '@/lib/uploadApi';
 import Icon from '@/components/ui/icon';
+import Emoji3D from '@/components/ui/emoji3d';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -278,7 +279,7 @@ const ProductsTab = ({ products, onAdded, onDeleted }: { products: Product[]; on
 
       {products.length === 0 ? (
         <Card className="border-dashed"><CardContent className="flex flex-col items-center gap-3 py-14 text-center">
-          <Icon name="PackagePlus" size={44} className="text-muted-foreground" />
+          <Emoji3D name="PackagePlus" size={56} />
           <p className="font-600 text-navy">Пока нет товаров</p>
           <p className="text-sm text-muted-foreground">Добавьте вручную или загрузите из Excel</p>
         </CardContent></Card>
@@ -467,7 +468,7 @@ const MediaTab = ({ media, onAdded, onDeleted }: { media: Media[]; onAdded: (m: 
       {/* Gallery */}
       {media.length === 0 ? (
         <Card className="border-dashed"><CardContent className="flex flex-col items-center gap-2 py-12 text-center">
-          <Icon name="ImagePlus" size={40} className="text-muted-foreground" />
+          <Emoji3D name="ImagePlus" size={52} />
           <p className="text-muted-foreground">Загруженные фото и видео появятся здесь</p>
         </CardContent></Card>
       ) : (
@@ -481,9 +482,7 @@ const MediaTab = ({ media, onAdded, onDeleted }: { media: Media[]; onAdded: (m: 
                 </div>
               ) : (
                 <div className="flex h-40 flex-col items-center justify-center gap-2">
-                  <div className="flex h-12 w-12 items-center justify-center rounded-full bg-navy/10">
-                    <Icon name="PlayCircle" size={36} className="text-navy" />
-                  </div>
+                  <Emoji3D name="PlayCircle" size={44} />
                   <a href={m.url} target="_blank" rel="noreferrer" className="text-xs text-gold hover:underline">
                     Открыть видео
                   </a>
@@ -587,7 +586,7 @@ const ReelsTab = ({ media, onAdded, onDeleted, seller }: {
             { v: analytics.total_likes, l: 'Лайков', icon: 'Heart' },
           ].map(m => (
             <div key={m.l} className="rounded-xl border border-border bg-background p-3 text-center">
-              <Icon name={m.icon} size={18} className="mx-auto mb-1 text-gold" />
+              <Emoji3D name={m.icon} size={28} className="mx-auto mb-1" />
               <div className="font-display text-xl font-700 text-navy">{m.v}</div>
               <div className="text-xs text-muted-foreground">{m.l}</div>
             </div>
@@ -694,7 +693,7 @@ const ReelsTab = ({ media, onAdded, onDeleted, seller }: {
       {videos.length === 0 ? (
         <Card className="border-dashed">
           <CardContent className="flex flex-col items-center gap-2 py-12 text-center">
-            <Icon name="Clapperboard" size={40} className="text-muted-foreground" />
+            <Emoji3D name="Clapperboard" size={52} />
             <p className="font-600 text-navy">Видео ещё не загружены</p>
             <p className="text-sm text-muted-foreground">Покажите производство, упаковку, контроль качества</p>
           </CardContent>

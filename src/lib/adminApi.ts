@@ -31,6 +31,26 @@ export interface AdminProduct {
   company_name: string;
 }
 
+export interface AdminLogistics {
+  id: number;
+  company_name: string;
+  logo_url?: string;
+  type: string;
+  description?: string;
+  routes?: string;
+  transit_time?: string;
+  min_weight?: string;
+  phone?: string;
+  email?: string;
+  website?: string;
+  telegram?: string;
+  wechat?: string;
+  rating: number;
+  reviews_count: number;
+  featured: boolean;
+  created_at: string;
+}
+
 async function call(action: string, method: string, body?: unknown) {
   const res = await fetch(`${BASE}?action=${action}`, {
     method,
@@ -52,4 +72,6 @@ export const adminApi = {
   addProduct: (b: { seller_id: number; name: string; category?: string; price?: string; description?: string; image_url?: string; sku?: string; min_order?: string; quantity?: string }) =>
     call('add_product', 'POST', b),
   deleteProduct: (id: number) => call('delete_product', 'POST', { id }),
+  logistics: (): Promise<{ logistics: AdminLogistics[] }> => call('logistics', 'GET'),
+  deleteLogistics: (id: number) => call('delete_logistics', 'POST', { id }),
 };

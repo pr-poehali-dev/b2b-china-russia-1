@@ -158,6 +158,24 @@ def handler(event: dict, context) -> dict:
             cur.execute("DELETE FROM products WHERE id = %s", (pid,))
             return _resp(200, {'ok': True})
 
+        # --- LOGISTICS (КАРГО) LIST ---
+        if action == 'logistics' and method == 'GET':
+            cur.execute(
+                "SELECT id, company_name, logo_url, type, description, routes, transit_time, "
+                "min_weight, phone, email, website, telegram, wechat, rating, reviews_count, featured, created_at "
+                "FROM logistics ORDER BY created_at DESC"
+            )
+            return _resp(200, {'logistics': [dict(r) for r in cur.fetchall()]})
+
+        # --- DELETE LOGISTICS (КАРГО) ---
+        if action == 'delete_logistics' and method == 'POST':
+            lid = body.get('id')
+            if not lid:
+                return _resp(400, {'error': 'Укажите id'})
+            cur.execute("DELETE FROM logistics_reviews WHERE logistics_id = %s", (lid,))
+            cur.execute("DELETE FROM logistics WHERE id = %s", (lid,))
+            return _resp(200, {'ok': True})
+
         return _resp(404, {'error': 'Неизвестное действие'})
     finally:
         cur.close()

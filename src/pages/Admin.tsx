@@ -15,7 +15,7 @@ import {
 import { toast } from '@/hooks/use-toast';
 import {
   adminApi, getAdminToken, setAdminToken, clearAdminToken,
-  type AdminSeller, type AdminProduct,
+  type AdminSeller, type AdminProduct, type AdminLogistics,
 } from '@/lib/adminApi';
 
 const CATEGORIES = ['Электроника', 'Текстиль и одежда', 'Товары для дома', 'Автозапчасти', 'Промоборудование', 'Упаковка'];
@@ -206,14 +206,16 @@ const Admin = () => {
   const [authed, setAuthed] = useState(!!getAdminToken());
   const [sellers, setSellers] = useState<AdminSeller[]>([]);
   const [products, setProducts] = useState<AdminProduct[]>([]);
+  const [logistics, setLogistics] = useState<AdminLogistics[]>([]);
   const [loading, setLoading] = useState(true);
 
   const loadData = async () => {
     setLoading(true);
     try {
-      const [s, p] = await Promise.all([adminApi.sellers(), adminApi.products()]);
+      const [s, p, l] = await Promise.all([adminApi.sellers(), adminApi.products(), adminApi.logistics()]);
       setSellers(s.sellers);
       setProducts(p.products);
+      setLogistics(l.logistics);
     } catch (e) {
       if ((e as Error).message.includes('авторизац')) {
         clearAdminToken();
@@ -249,6 +251,16 @@ const Admin = () => {
     }
   };
 
+  const deleteLogistics = async (id: number) => {
+    try {
+      await adminApi.deleteLogistics(id);
+      setLogistics((l) => l.filter((x) => x.id !== id));
+      toast({ title: 'Карго-компания удалена' });
+    } catch (e) {
+      toast({ title: 'Ошибка', description: (e as Error).message, variant: 'destructive' });
+    }
+  };
+
   const logout = () => {
     clearAdminToken();
     setAuthed(false);
@@ -278,6 +290,7 @@ const Admin = () => {
           <TabsList className="mb-6">
             <TabsTrigger value="sellers">Поставщики ({sellers.length})</TabsTrigger>
             <TabsTrigger value="products">Товары ({products.length})</TabsTrigger>
+            <TabsTrigger value="logistics">Карго ({logistics.length})</TabsTrigger>
           </TabsList>
 
           {/* SELLERS */}
@@ -376,6 +389,61 @@ const Admin = () => {
                           </AlertDialogFooter>
                         </AlertDialogContent>
                       </AlertDialog>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            )}
+          </TabsContent>
+
+          {/* LOGISTICS (КАРГО) */}
+          <TabsContent value="logistics">
+            <div className="mb-4 flex items-center justify-between">
+              <h2 className="font-display text-xl font-700 text-navy">Все карго-компании</h2>
+            </div>
+            {loading ? (
+              <div className="flex justify-center py-16"><Icon name="Loader2" size={32} className="animate-spin text-gold" /></div>
+            ) : logistics.length === 0 ? (
+              <Card className="border-dashed"><CardContent className="py-10 text-center text-muted-foreground">Карго-компаний пока нет</CardContent></Card>
+            ) : (
+              <div className="space-y-3">
+                {logistics.map((l) => (
+                  <Card key={l.id} className="border-border">
+                    <CardContent className="flex items-center justify-between gap-3 p-4">
+                      <div className="flex items-center gap-3">
+                        <div className="flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-lg border border-border bg-secondary">
+                          {l.logo_url
+                            ? <img src={l.logo_url} alt={l.company_name} className="h-full w-full object-cover" />
+                            : <Icon name="Truck" size={20} className="text-muted-foreground" />
+                          }
+                        </div>
+                        <div>
+                          <div className="font-600 text-navy">{l.company_name}</div>
+                          <div className="text-sm text-muted-foreground">{l.type} · {l.transit_time || '—'}</div>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-3 shrink-0">
+                        {l.featured && <span className="rounded-full bg-gold px-2.5 py-1 text-xs font-500 text-gold-foreground">Топ</span>}
+                        <AlertDialog>
+                          <AlertDialogTrigger asChild>
+                            <Button variant="ghost" size="icon" className="text-red-500 hover:bg-red-50 hover:text-red-600">
+                              <Icon name="Trash2" size={16} />
+                            </Button>
+                          </AlertDialogTrigger>
+                          <AlertDialogContent>
+                            <AlertDialogHeader>
+                              <AlertDialogTitle>Удалить карго-компанию?</AlertDialogTitle>
+                              <AlertDialogDescription>Компания «{l.company_name}» будет удалена безвозвратно, вместе с отзывами.</AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                              <AlertDialogCancel>Отмена</AlertDialogCancel>
+                              <AlertDialogAction className="bg-red-600 hover:bg-red-700" onClick={() => deleteLogistics(l.id)}>
+                                Удалить
+                              </AlertDialogAction>
+                            </AlertDialogFooter>
+                          </AlertDialogContent>
+                        </AlertDialog>
+                      </div>
                     </CardContent>
                   </Card>
                 ))}

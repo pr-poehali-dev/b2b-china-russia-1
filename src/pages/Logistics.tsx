@@ -12,6 +12,8 @@ import {
 } from '@/components/ui/dialog';
 import { toast } from '@/hooks/use-toast';
 import { logisticsApi, type LogisticsCompany, type LogisticsReview } from '@/lib/logisticsApi';
+import CurrencyRate from '@/components/CurrencyRate';
+import CurrencyConverter from '@/components/CurrencyConverter';
 
 const TYPE_ICON: Record<string, string> = {
   'Морские перевозки': 'Ship',
@@ -431,8 +433,9 @@ const Logistics = () => {
             </span>
           </button>
           <div className="flex items-center gap-2">
-            <Button variant="ghost" className="text-muted-foreground" onClick={() => navigate('/suppliers')}>Поставщики</Button>
-            <Button variant="ghost" className="text-muted-foreground" onClick={() => navigate('/blog')}>Новости</Button>
+            <CurrencyRate />
+            <Button variant="ghost" className="text-muted-foreground hidden sm:inline-flex" onClick={() => navigate('/suppliers')}>Поставщики</Button>
+            <Button variant="ghost" className="text-muted-foreground hidden sm:inline-flex" onClick={() => navigate('/blog')}>Новости</Button>
             <Button className="bg-gold text-gold-foreground hover:bg-gold/90" onClick={() => navigate('/cabinet')}>Кабинет</Button>
           </div>
         </div>
@@ -459,6 +462,9 @@ const Logistics = () => {
                 </div>
               </div>
             ))}
+          </div>
+          <div className="mt-6 max-w-sm">
+            <CurrencyConverter />
           </div>
         </div>
       </section>

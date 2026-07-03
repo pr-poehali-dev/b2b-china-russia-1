@@ -599,15 +599,13 @@ const Index = () => {
               </div>
             </div>
             <div className="hidden md:flex items-center justify-center gap-3 p-8">
-              {['Factory', 'Package', 'Settings'].map((iconName, i) => (
+              {['🏭', '📦', '⚙️'].map((emoji, i) => (
                 <div
                   key={i}
                   className="flex flex-col items-center justify-end rounded-2xl bg-white/10 backdrop-blur-sm border border-white/10 overflow-hidden"
                   style={{ width: 100, height: 178, transform: i === 1 ? 'translateY(-16px)' : 'none' }}
                 >
-                  <div className="flex-1 flex items-center justify-center">
-                    <Icon name={iconName} size={36} className="text-white/90" />
-                  </div>
+                  <div className="flex-1 flex items-center justify-center text-4xl">{emoji}</div>
                   <div className="w-full bg-black/40 p-2">
                     <div className="flex items-center gap-1 mb-1">
                       <div className="h-4 w-4 rounded-full bg-gold/60" />

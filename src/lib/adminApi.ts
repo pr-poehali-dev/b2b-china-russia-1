@@ -73,5 +73,7 @@ export const adminApi = {
     call('add_product', 'POST', b),
   deleteProduct: (id: number) => call('delete_product', 'POST', { id }),
   logistics: (): Promise<{ logistics: AdminLogistics[] }> => call('logistics', 'GET'),
+  addLogistics: (b: { company_name: string; type: string; logo_url?: string; description?: string; routes?: string; transit_time?: string; min_weight?: string; phone?: string; email?: string; website?: string; telegram?: string; wechat?: string; featured?: boolean }) =>
+    call('add_logistics', 'POST', b),
   deleteLogistics: (id: number) => call('delete_logistics', 'POST', { id }),
 };

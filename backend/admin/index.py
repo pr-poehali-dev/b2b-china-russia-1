@@ -158,6 +158,24 @@ def handler(event: dict, context) -> dict:
             cur.execute("DELETE FROM products WHERE id = %s", (pid,))
             return _resp(200, {'ok': True})
 
+        # --- ADD LOGISTICS (КАРГО) ---
+        if action == 'add_logistics' and method == 'POST':
+            company = (body.get('company_name') or '').strip()
+            ltype = (body.get('type') or '').strip()
+            if not company or not ltype:
+                return _resp(400, {'error': 'Укажите название компании и тип'})
+            cur.execute(
+                "INSERT INTO logistics (company_name, logo_url, type, description, routes, transit_time, "
+                "min_weight, phone, email, website, telegram, wechat, featured) "
+                "VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s) "
+                "RETURNING id, company_name, logo_url, type, description, routes, transit_time, "
+                "min_weight, phone, email, website, telegram, wechat, rating, reviews_count, featured, created_at",
+                (company, body.get('logo_url'), ltype, body.get('description'), body.get('routes'),
+                 body.get('transit_time'), body.get('min_weight'), body.get('phone'), body.get('email'),
+                 body.get('website'), body.get('telegram'), body.get('wechat'), bool(body.get('featured', False))),
+            )
+            return _resp(200, {'logistics': dict(cur.fetchone())})
+
         # --- LOGISTICS (КАРГО) LIST ---
         if action == 'logistics' and method == 'GET':
             cur.execute(

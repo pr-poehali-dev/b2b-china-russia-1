@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import Icon from '@/components/ui/icon';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import {
@@ -20,6 +21,7 @@ import {
 
 const CATEGORIES = ['Электроника', 'Текстиль и одежда', 'Товары для дома', 'Автозапчасти', 'Промоборудование', 'Упаковка'];
 const PROVINCES = ['Гуандун', 'Чжэцзян', 'Цзянсу', 'Шаньдун', 'Фуцзянь', 'Хэбэй', 'Шанхай', 'Пекин'];
+const LOGISTICS_TYPES = ['Морские перевозки', 'Ж/д перевозки', 'Авиаперевозки', 'Автоперевозки'];
 
 // ---------- AUTH ----------
 const AuthScreen = ({ onAuth }: { onAuth: () => void }) => {
@@ -189,6 +191,84 @@ const AddProductDialog = ({ sellers, onAdded }: { sellers: AdminSeller[]; onAdde
             <Input placeholder="Цена" value={form.price} onChange={(e) => set('price', e.target.value)} />
           </div>
           <Input placeholder="Описание" value={form.description} onChange={(e) => set('description', e.target.value)} />
+        </div>
+        <DialogFooter>
+          <Button className="w-full bg-gold text-gold-foreground hover:bg-gold/90" disabled={loading} onClick={submit}>
+            {loading ? 'Добавление...' : 'Добавить'}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+};
+
+// ---------- ADD LOGISTICS DIALOG ----------
+const AddLogisticsDialog = ({ onAdded }: { onAdded: (l: AdminLogistics) => void }) => {
+  const [open, setOpen] = useState(false);
+  const [form, setForm] = useState({
+    company_name: '', type: '', description: '', routes: '', transit_time: '', min_weight: '',
+    phone: '', email: '', website: '', telegram: '', wechat: '', logo_url: '', featured: false,
+  });
+  const [loading, setLoading] = useState(false);
+  const set = (k: string, v: string | boolean) => setForm((f) => ({ ...f, [k]: v }));
+
+  const submit = async () => {
+    if (!form.company_name.trim() || !form.type) {
+      toast({ title: 'Укажите название компании и тип перевозок', variant: 'destructive' });
+      return;
+    }
+    setLoading(true);
+    try {
+      const res = await adminApi.addLogistics(form);
+      onAdded(res.logistics);
+      toast({ title: 'Карго-компания добавлена' });
+      setForm({ company_name: '', type: '', description: '', routes: '', transit_time: '', min_weight: '', phone: '', email: '', website: '', telegram: '', wechat: '', logo_url: '', featured: false });
+      setOpen(false);
+    } catch (e) {
+      toast({ title: 'Ошибка', description: (e as Error).message, variant: 'destructive' });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger asChild>
+        <Button className="bg-gold text-gold-foreground hover:bg-gold/90">
+          <Icon name="Plus" size={16} className="mr-1" />
+          Добавить карго
+        </Button>
+      </DialogTrigger>
+      <DialogContent className="max-w-lg">
+        <DialogHeader>
+          <DialogTitle className="font-display text-navy">Новая карго-компания</DialogTitle>
+        </DialogHeader>
+        <div className="max-h-[65vh] space-y-3 overflow-y-auto pr-1">
+          <Input placeholder="Название компании *" value={form.company_name} onChange={(e) => set('company_name', e.target.value)} />
+          <select className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm" value={form.type} onChange={(e) => set('type', e.target.value)}>
+            <option value="">Тип перевозок *</option>
+            {LOGISTICS_TYPES.map((t) => <option key={t} value={t}>{t}</option>)}
+          </select>
+          <Textarea placeholder="Описание" value={form.description} onChange={(e) => set('description', e.target.value)} />
+          <div className="grid grid-cols-2 gap-3">
+            <Input placeholder="Маршруты" value={form.routes} onChange={(e) => set('routes', e.target.value)} />
+            <Input placeholder="Срок доставки" value={form.transit_time} onChange={(e) => set('transit_time', e.target.value)} />
+          </div>
+          <Input placeholder="Мин. вес партии" value={form.min_weight} onChange={(e) => set('min_weight', e.target.value)} />
+          <div className="grid grid-cols-2 gap-3">
+            <Input placeholder="Телефон" value={form.phone} onChange={(e) => set('phone', e.target.value)} />
+            <Input placeholder="Email" value={form.email} onChange={(e) => set('email', e.target.value)} />
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <Input placeholder="Telegram" value={form.telegram} onChange={(e) => set('telegram', e.target.value)} />
+            <Input placeholder="WeChat" value={form.wechat} onChange={(e) => set('wechat', e.target.value)} />
+          </div>
+          <Input placeholder="Сайт" value={form.website} onChange={(e) => set('website', e.target.value)} />
+          <Input placeholder="Ссылка на логотип" value={form.logo_url} onChange={(e) => set('logo_url', e.target.value)} />
+          <label className="flex items-center gap-2 text-sm text-navy">
+            <input type="checkbox" checked={form.featured} onChange={(e) => set('featured', e.target.checked)} />
+            Показывать как топ-компанию
+          </label>
         </div>
         <DialogFooter>
           <Button className="w-full bg-gold text-gold-foreground hover:bg-gold/90" disabled={loading} onClick={submit}>
@@ -400,6 +480,7 @@ const Admin = () => {
           <TabsContent value="logistics">
             <div className="mb-4 flex items-center justify-between">
               <h2 className="font-display text-xl font-700 text-navy">Все карго-компании</h2>
+              <AddLogisticsDialog onAdded={(l) => setLogistics((prev) => [l, ...prev])} />
             </div>
             {loading ? (
               <div className="flex justify-center py-16"><Icon name="Loader2" size={32} className="animate-spin text-gold" /></div>

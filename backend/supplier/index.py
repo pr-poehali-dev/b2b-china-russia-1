@@ -130,6 +130,37 @@ def handler(event: dict, context) -> dict:
             sellers = cur.fetchall()
             return _resp(200, {'sellers': [dict(s) for s in sellers]})
 
+        # --- PUBLIC PRODUCTS CATALOG (across all sellers) ---
+        if action == 'products' and method == 'GET':
+            category = params.get('category')
+            search = params.get('q')
+            conditions = ["p.status = 'Активен'"]
+            args = []
+            if category:
+                conditions.append('p.category = %s')
+                args.append(category)
+            if search:
+                conditions.append('(p.name ILIKE %s OR p.description ILIKE %s)')
+                args += [f'%{search}%', f'%{search}%']
+            where = ' AND '.join(conditions)
+            cur.execute(
+                f"SELECT p.id, p.name, p.category, p.price, p.image_url, p.views, "
+                f"p.seller_id, s.company_name, s.province, s.plan "
+                f"FROM products p JOIN sellers s ON s.id = p.seller_id "
+                f"WHERE {where} "
+                f"ORDER BY CASE s.plan WHEN 'Platinum' THEN 0 WHEN 'Gold' THEN 1 WHEN 'Premium' THEN 2 ELSE 3 END, p.views DESC "
+                f"LIMIT 60",
+                args
+            )
+            products = cur.fetchall()
+            cur.execute(
+                "SELECT category, COUNT(*) as count FROM products "
+                "WHERE status = 'Активен' AND category IS NOT NULL "
+                "GROUP BY category ORDER BY count DESC"
+            )
+            categories = cur.fetchall()
+            return _resp(200, {'products': [dict(p) for p in products], 'categories': [dict(c) for c in categories]})
+
         # --- SEND LEAD ---
         if action == 'send_lead' and method == 'POST':
             sid = body.get('seller_id')

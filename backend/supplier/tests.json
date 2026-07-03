@@ -21,6 +21,14 @@
       "expectedStatus": 400
     },
     {
+      "name": "Products catalog",
+      "method": "GET",
+      "path": "/?action=products",
+      "expectedStatus": 200,
+      "expectedBody": {"products": []},
+      "bodyMatcher": "partial"
+    },
+    {
       "name": "Send lead without data",
       "method": "POST",
       "path": "/?action=send_lead",

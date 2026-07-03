@@ -43,6 +43,24 @@ export interface PublicMedia {
   caption?: string;
 }
 
+export interface CatalogProduct {
+  id: number;
+  name: string;
+  category?: string;
+  price?: string;
+  image_url?: string;
+  views: number;
+  seller_id: number;
+  company_name: string;
+  province?: string;
+  plan: string;
+}
+
+export interface CatalogCategory {
+  category: string;
+  count: number;
+}
+
 async function get(action: string, params: Record<string, string> = {}) {
   const qs = new URLSearchParams({ action, ...params }).toString();
   const res = await fetch(`${BASE}?${qs}`);
@@ -65,6 +83,8 @@ async function post(action: string, body: unknown) {
 export const supplierApi = {
   getProfile: (id: string) => get('profile', { id }),
   listSuppliers: (filters: Record<string, string> = {}) => get('list', filters),
+  listProducts: (filters: Record<string, string> = {}): Promise<{ products: CatalogProduct[]; categories: CatalogCategory[] }> =>
+    get('products', filters),
   sendLead: (b: { seller_id: number; buyer_name: string; buyer_contact: string; message?: string }) =>
     post('send_lead', b),
   contact: (b: { name: string; company?: string; email?: string; phone?: string; product_interest?: string; budget?: string; quantity?: string; message?: string }) =>

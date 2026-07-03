@@ -309,7 +309,7 @@ const Index = () => {
               Поиск по категориям
             </h2>
           </div>
-          <Button variant="outline" className="border-navy text-navy" onClick={() => navigate('/suppliers')}>
+          <Button variant="outline" className="border-navy text-navy" onClick={() => navigate('/products')}>
             Все категории
             <Icon name="ArrowRight" size={16} className="ml-1" />
           </Button>
@@ -319,7 +319,7 @@ const Index = () => {
             <Card
               key={c.name}
               className="hover-lift cursor-pointer border-border"
-              onClick={() => navigate(`/suppliers?category=${encodeURIComponent(c.name)}`)}
+              onClick={() => navigate(`/products?category=${encodeURIComponent(c.name)}`)}
             >
               <CardContent className="flex flex-col gap-2 p-3 sm:gap-3 sm:p-6">
                 <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-secondary text-navy sm:h-12 sm:w-12">

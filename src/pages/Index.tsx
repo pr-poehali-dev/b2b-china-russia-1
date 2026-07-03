@@ -199,12 +199,6 @@ const Index = () => {
           <div className="flex items-center gap-2">
             <CurrencyRate />
             <OnlineVisitors />
-            <Button
-              className="hidden sm:inline-flex bg-gold text-gold-foreground hover:bg-gold/90"
-              onClick={() => navigate('/cabinet')}
-            >
-              Кабинет продавца
-            </Button>
             {/* Mobile hamburger */}
             <button
               className="flex h-10 w-10 items-center justify-center rounded-lg border border-border lg:hidden"
@@ -231,12 +225,6 @@ const Index = () => {
                   {item.label}
                 </a>
               ))}
-              <Button
-                className="mt-2 w-full bg-gold text-gold-foreground hover:bg-gold/90"
-                onClick={() => { navigate('/cabinet'); setMobileMenuOpen(false); }}
-              >
-                Кабинет продавца
-              </Button>
             </nav>
           </div>
         )}
@@ -766,7 +754,7 @@ const Index = () => {
                 Chinese<span className="text-gold">Cart</span>
               </span>
             </div>
-            <nav className="flex flex-wrap gap-x-6 gap-y-2 text-sm">
+            <nav className="flex flex-wrap items-center gap-x-6 gap-y-2 text-sm">
               {NAV.map((n) => (
                 <a
                   key={n.label}
@@ -777,6 +765,12 @@ const Index = () => {
                   {n.label}
                 </a>
               ))}
+              <Button
+                className="bg-gold text-gold-foreground hover:bg-gold/90"
+                onClick={() => navigate('/cabinet')}
+              >
+                Кабинет продавца
+              </Button>
             </nav>
           </div>
           <div className="mt-8 border-t border-white/10 pt-6 text-sm">© 2026 ChineseCart.ru — B2B платформа поставщиков Китай — Россия</div>

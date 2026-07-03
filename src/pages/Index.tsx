@@ -39,7 +39,7 @@ const FOOTER_PAGES = [
   { label: 'Страница 3', href: '#' },
   { label: 'Страница 4', href: '#' },
   { label: 'Страница 5', href: '#' },
-  { label: 'Страница 6', href: '#' },
+  { label: 'Продавать на Tmall', href: '#' },
   { label: 'Страница 7', href: '#' },
   { label: 'Страница 8', href: '#' },
   { label: 'Страница 9', href: '#' },

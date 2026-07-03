@@ -353,9 +353,7 @@ const Index = () => {
                   <h2 className="font-display text-xl font-700 text-navy sm:text-2xl">
                     Регистрация поставщика
                   </h2>
-                  <p className="mt-1 text-sm text-muted-foreground">
-                    Разместите свою компанию и товары для российских покупателей
-                  </p>
+                  <p className="mt-1 text-sm text-muted-foreground">Разместите свою компанию и услуги для российских покупателей</p>
                   <div className="mt-6 space-y-3">
                     <div>
                       <label className="mb-1.5 block text-sm font-500 text-navy">Название компании</label>

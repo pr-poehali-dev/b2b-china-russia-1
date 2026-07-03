@@ -31,7 +31,6 @@ const NAV = [
   { label: '🎬 Видео', href: '/feed' },
   { label: '🚚 Логистика', href: '/logistics' },
   { label: '📰 Новости', href: '/blog' },
-  { label: '✉️ Контакты', href: '#contacts' },
 ];
 
 const STATS = [

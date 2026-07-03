@@ -26,6 +26,7 @@ const FACTORY_IMG =
 
 const NAV = [
   { label: 'Главная', href: '/' },
+  { label: 'Товары', href: '/products' },
   { label: 'Поставщики', href: '/suppliers' },
   { label: '🎬 Видео', href: '/feed' },
   { label: 'Логистика', href: '/logistics' },

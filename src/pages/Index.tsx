@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { toast } from '@/hooks/use-toast';
-import { api as cabinetApi, setToken as setCabinetToken } from '@/lib/cabinetApi';
+import { api as cabinetApi, getToken as getCabinetToken, setToken as setCabinetToken, clearToken as clearCabinetToken, type Seller, type Stats } from '@/lib/cabinetApi';
 import {
   Card,
   CardContent,
@@ -145,10 +145,17 @@ const Index = () => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [sellerForm, setSellerForm] = useState({ company_name: '', email: '', password: '' });
   const [sellerLoading, setSellerLoading] = useState(false);
+  const [loggedSeller, setLoggedSeller] = useState<Seller | null>(null);
+  const [sellerStats, setSellerStats] = useState<Stats | null>(null);
   const navigate = useNavigate();
 
   useEffect(() => {
     blogApi.list().then((d) => setNews((d.articles || []).slice(0, 3)));
+    if (getCabinetToken()) {
+      cabinetApi.dashboard()
+        .then((d) => { setLoggedSeller(d.seller); setSellerStats(d.stats); })
+        .catch(() => clearCabinetToken());
+    }
   }, []);
 
   const setContact = (k: string, v: string) => setContactForm((f) => ({ ...f, [k]: v }));
@@ -162,8 +169,10 @@ const Index = () => {
     try {
       const res = await cabinetApi.register(sellerForm);
       setCabinetToken(res.token);
+      const d = await cabinetApi.dashboard();
+      setLoggedSeller(d.seller);
+      setSellerStats(d.stats);
       toast({ title: 'Регистрация выполнена' });
-      navigate('/cabinet');
     } catch (e) {
       toast({ title: 'Ошибка', description: (e as Error).message, variant: 'destructive' });
     } finally {
@@ -293,61 +302,107 @@ const Index = () => {
               </div>
             </div>
 
-            {/* Right: seller registration */}
-            <Card className="border-border">
-              <CardContent className="flex h-full flex-col justify-center p-6 sm:p-8">
-                <h2 className="font-display text-xl font-700 text-navy sm:text-2xl">
-                  Регистрация поставщика
-                </h2>
-                <p className="mt-1 text-sm text-muted-foreground">
-                  Разместите свою компанию и товары для российских покупателей
-                </p>
-                <div className="mt-6 space-y-3">
-                  <div>
-                    <label className="mb-1.5 block text-sm font-500 text-navy">Название компании</label>
-                    <Input
-                      placeholder="ООО «Компания»"
-                      value={sellerForm.company_name}
-                      onChange={(e) => setSellerForm((f) => ({ ...f, company_name: e.target.value }))}
-                    />
+            {/* Right: seller registration / mini dashboard */}
+            {loggedSeller ? (
+              <Card className="border-border">
+                <CardContent className="flex h-full flex-col justify-center p-6 sm:p-8">
+                  <div className="flex items-center gap-3">
+                    <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-lg bg-navy font-display text-lg font-700 text-white">
+                      {loggedSeller.company_name?.[0] || 'S'}
+                    </div>
+                    <div>
+                      <div className="font-600 text-navy">{loggedSeller.company_name}</div>
+                      <div className="text-sm text-muted-foreground">{loggedSeller.email}</div>
+                    </div>
                   </div>
-                  <div>
-                    <label className="mb-1.5 block text-sm font-500 text-navy">Email</label>
-                    <Input
-                      type="email"
-                      placeholder="email@company.com"
-                      value={sellerForm.email}
-                      onChange={(e) => setSellerForm((f) => ({ ...f, email: e.target.value }))}
-                    />
+                  {sellerStats && (
+                    <div className="mt-6 grid grid-cols-3 gap-3">
+                      <div className="rounded-xl border border-border bg-secondary/40 p-3 text-center">
+                        <div className="font-display text-xl font-700 text-navy">{sellerStats.products}</div>
+                        <div className="text-xs text-muted-foreground">Товаров</div>
+                      </div>
+                      <div className="rounded-xl border border-border bg-secondary/40 p-3 text-center">
+                        <div className="font-display text-xl font-700 text-navy">{sellerStats.views}</div>
+                        <div className="text-xs text-muted-foreground">Просмотров</div>
+                      </div>
+                      <div className="rounded-xl border border-border bg-secondary/40 p-3 text-center">
+                        <div className="font-display text-xl font-700 text-navy">{sellerStats.leads}</div>
+                        <div className="text-xs text-muted-foreground">Заявок</div>
+                      </div>
+                    </div>
+                  )}
+                  <Button
+                    size="lg"
+                    className="mt-6 h-11 w-full bg-gold text-gold-foreground hover:bg-gold/90"
+                    onClick={() => navigate('/cabinet')}
+                  >
+                    Открыть личный кабинет
+                  </Button>
+                  <Button
+                    variant="outline"
+                    className="mt-2 h-11 w-full border-navy text-navy hover:bg-secondary"
+                    onClick={() => { clearCabinetToken(); setLoggedSeller(null); setSellerStats(null); }}
+                  >
+                    Выйти
+                  </Button>
+                </CardContent>
+              </Card>
+            ) : (
+              <Card className="border-border">
+                <CardContent className="flex h-full flex-col justify-center p-6 sm:p-8">
+                  <h2 className="font-display text-xl font-700 text-navy sm:text-2xl">
+                    Регистрация поставщика
+                  </h2>
+                  <p className="mt-1 text-sm text-muted-foreground">
+                    Разместите свою компанию и товары для российских покупателей
+                  </p>
+                  <div className="mt-6 space-y-3">
+                    <div>
+                      <label className="mb-1.5 block text-sm font-500 text-navy">Название компании</label>
+                      <Input
+                        placeholder="ООО «Компания»"
+                        value={sellerForm.company_name}
+                        onChange={(e) => setSellerForm((f) => ({ ...f, company_name: e.target.value }))}
+                      />
+                    </div>
+                    <div>
+                      <label className="mb-1.5 block text-sm font-500 text-navy">Email</label>
+                      <Input
+                        type="email"
+                        placeholder="email@company.com"
+                        value={sellerForm.email}
+                        onChange={(e) => setSellerForm((f) => ({ ...f, email: e.target.value }))}
+                      />
+                    </div>
+                    <div>
+                      <label className="mb-1.5 block text-sm font-500 text-navy">Пароль</label>
+                      <Input
+                        type="password"
+                        placeholder="Придумайте пароль"
+                        value={sellerForm.password}
+                        onChange={(e) => setSellerForm((f) => ({ ...f, password: e.target.value }))}
+                        onKeyDown={(e) => { if (e.key === 'Enter') submitSeller(); }}
+                      />
+                    </div>
                   </div>
-                  <div>
-                    <label className="mb-1.5 block text-sm font-500 text-navy">Пароль</label>
-                    <Input
-                      type="password"
-                      placeholder="Придумайте пароль"
-                      value={sellerForm.password}
-                      onChange={(e) => setSellerForm((f) => ({ ...f, password: e.target.value }))}
-                      onKeyDown={(e) => { if (e.key === 'Enter') submitSeller(); }}
-                    />
-                  </div>
-                </div>
-                <Button
-                  size="lg"
-                  className="mt-5 h-11 w-full bg-gold text-gold-foreground hover:bg-gold/90"
-                  disabled={sellerLoading}
-                  onClick={submitSeller}
-                >
-                  {sellerLoading ? 'Регистрация...' : 'Зарегистрироваться'}
-                </Button>
-                <Button
-                  variant="outline"
-                  className="mt-2 h-11 w-full border-navy text-navy hover:bg-secondary"
-                  onClick={() => navigate('/cabinet')}
-                >
-                  Уже есть аккаунт — Войти
-                </Button>
-              </CardContent>
-            </Card>
+                  <Button
+                    size="lg"
+                    className="mt-5 h-11 w-full bg-gold text-gold-foreground hover:bg-gold/90"
+                    disabled={sellerLoading}
+                    onClick={submitSeller}
+                  >
+                    {sellerLoading ? 'Регистрация...' : 'Зарегистрироваться'}
+                  </Button>
+                  <Button
+                    variant="outline"
+                    className="mt-2 h-11 w-full border-navy text-navy hover:bg-secondary"
+                    onClick={() => navigate('/cabinet')}
+                  >
+                    Уже есть аккаунт — Войти
+                  </Button>
+                </CardContent>
+              </Card>
+            )}
           </div>
         </div>
       </section>

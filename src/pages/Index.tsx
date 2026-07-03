@@ -219,10 +219,7 @@ const Index = () => {
               size="sm"
               className="hidden border-navy text-navy hover:bg-secondary sm:flex"
               onClick={() => navigate('/account')}
-            >
-              <Icon name="User" size={15} className="mr-1.5" />
-              Личный кабинет
-            </Button>
+            >Кабинет покупателя</Button>
             {/* Mobile hamburger */}
             <button
               className="flex h-10 w-10 items-center justify-center rounded-lg border border-border lg:hidden"

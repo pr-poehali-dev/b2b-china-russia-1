@@ -33,6 +33,19 @@ const NAV = [
   { label: 'Контакты', href: '#contacts' },
 ];
 
+const FOOTER_PAGES = [
+  { label: 'Страница 1', href: '#' },
+  { label: 'Страница 2', href: '#' },
+  { label: 'Страница 3', href: '#' },
+  { label: 'Страница 4', href: '#' },
+  { label: 'Страница 5', href: '#' },
+  { label: 'Страница 6', href: '#' },
+  { label: 'Страница 7', href: '#' },
+  { label: 'Страница 8', href: '#' },
+  { label: 'Страница 9', href: '#' },
+  { label: 'Страница 10', href: '#' },
+];
+
 const STATS = [
   { value: '12 400+', label: 'Поставщиков' },
   { value: '860 000+', label: 'Товаров' },
@@ -773,7 +786,14 @@ const Index = () => {
               </Button>
             </nav>
           </div>
-          <div className="mt-8 border-t border-white/10 pt-6 text-sm">© 2026 ChineseCart.ru — B2B платформа поставщиков Китай — Россия </div>
+          <div className="mt-8 grid grid-cols-2 gap-x-6 gap-y-2 border-t border-white/10 pt-6 text-sm sm:grid-cols-3 md:grid-cols-5">
+            {FOOTER_PAGES.map((p) => (
+              <a key={p.label} href={p.href} className="hover:text-gold">
+                {p.label}
+              </a>
+            ))}
+          </div>
+          <div className="mt-6 border-t border-white/10 pt-6 text-sm">© 2026 ChineseCart.ru — B2B платформа поставщиков Китай — Россия </div>
         </div>
       </footer>
     </div>

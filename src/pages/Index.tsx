@@ -358,7 +358,7 @@ const Index = () => {
                     <div>
                       <label className="mb-1.5 block text-sm font-500 text-navy">Название компании</label>
                       <Input
-                        placeholder="ООО «Компания»"
+                        placeholder="Название компании"
                         value={sellerForm.company_name}
                         onChange={(e) => setSellerForm((f) => ({ ...f, company_name: e.target.value }))}
                       />

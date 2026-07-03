@@ -6,6 +6,8 @@ import Icon from '@/components/ui/icon';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
+import { toast } from '@/hooks/use-toast';
+import { api as cabinetApi, setToken as setCabinetToken } from '@/lib/cabinetApi';
 import {
   Card,
   CardContent,
@@ -31,13 +33,6 @@ const NAV = [
   { label: '🎬 Видео', href: '/feed' },
   { label: '🚚 Логистика', href: '/logistics' },
   { label: '📰 Новости', href: '/blog' },
-];
-
-const STATS = [
-  { value: '12 400+', label: 'Поставщиков' },
-  { value: '860 000+', label: 'Товаров' },
-  { value: '31', label: 'Провинция' },
-  { value: '4 200+', label: 'Сделок в месяц' },
 ];
 
 const PROVINCES = [
@@ -148,6 +143,8 @@ const Index = () => {
   const [contactSent, setContactSent] = useState(false);
   const [contactLoading, setContactLoading] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [sellerForm, setSellerForm] = useState({ company_name: '', email: '', password: '' });
+  const [sellerLoading, setSellerLoading] = useState(false);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -155,6 +152,24 @@ const Index = () => {
   }, []);
 
   const setContact = (k: string, v: string) => setContactForm((f) => ({ ...f, [k]: v }));
+
+  const submitSeller = async () => {
+    if (!sellerForm.company_name.trim() || !sellerForm.email.trim() || !sellerForm.password.trim()) {
+      toast({ title: 'Заполните все поля', variant: 'destructive' });
+      return;
+    }
+    setSellerLoading(true);
+    try {
+      const res = await cabinetApi.register(sellerForm);
+      setCabinetToken(res.token);
+      toast({ title: 'Регистрация выполнена' });
+      navigate('/cabinet');
+    } catch (e) {
+      toast({ title: 'Ошибка', description: (e as Error).message, variant: 'destructive' });
+    } finally {
+      setSellerLoading(false);
+    }
+  };
 
   const submitContact = async () => {
     if (!contactForm.name.trim() || (!contactForm.email.trim() && !contactForm.phone.trim())) {
@@ -247,55 +262,95 @@ const Index = () => {
       </header>
 
       {/* Hero */}
-      <section className="relative overflow-hidden bg-navy-deep text-white">
-        <div className="absolute inset-0 grid-texture opacity-40" />
-        <img
-          src={FACTORY_IMG}
-          alt="Производство в Китае"
-          className="absolute inset-0 h-full w-full object-cover opacity-25"
-        />
-        <div className="absolute inset-0 bg-gradient-to-r from-navy-deep via-navy-deep/85 to-transparent" />
-        <div className="container relative py-14 md:py-32">
-          <div className="max-w-2xl animate-fade-in">
-            <Badge className="mb-4 bg-gold/15 text-gold hover:bg-gold/15">
-              B2B платформа Китай — Россия
-            </Badge>
-            <h1 className="font-display text-3xl font-700 leading-tight sm:text-4xl md:text-6xl">
-              Проверенные поставщики из Китая — напрямую к вашему бизнесу
-            </h1>
-            <p className="mt-4 max-w-xl text-base text-white/70 sm:text-lg">
-              Тысячи верифицированных производителей, каталог товаров,
-              логистика и переводы. Всё для безопасного выхода на рынок.
-            </p>
-
-            <div className="mt-6 flex flex-col gap-2 rounded-xl bg-white/10 p-2 backdrop-blur-sm sm:flex-row">
-              <div className="flex flex-1 items-center gap-2 px-3">
-                <Icon name="Search" size={20} className="text-white/60 shrink-0" />
-                <Input
-                  placeholder="Найти поставщика или товар..."
-                  className="border-0 bg-transparent text-white placeholder:text-white/50 focus-visible:ring-0 h-11 text-base"
-                  onKeyDown={(e) => { if (e.key === 'Enter') navigate('/suppliers'); }}
-                />
+      <section className="bg-secondary/40 py-8 md:py-14">
+        <div className="container">
+          <div className="grid gap-6 lg:grid-cols-[1.3fr_1fr] lg:gap-8">
+            {/* Left: promo */}
+            <div className="relative overflow-hidden rounded-3xl bg-navy-deep text-white">
+              <div className="absolute inset-0 grid-texture opacity-40" />
+              <img
+                src={FACTORY_IMG}
+                alt="Производство в Китае"
+                className="absolute inset-0 h-full w-full object-cover opacity-25"
+              />
+              <div className="absolute inset-0 bg-gradient-to-r from-navy-deep via-navy-deep/85 to-transparent" />
+              <div className="relative flex h-full flex-col justify-center px-6 py-10 sm:px-10 md:py-16">
+                <Badge className="mb-4 w-fit bg-gold/15 text-gold hover:bg-gold/15">
+                  B2B платформа Китай — Россия
+                </Badge>
+                <h1 className="font-display text-3xl font-700 leading-tight sm:text-4xl md:text-5xl">
+                  Проверенные поставщики из Китая — напрямую к вашему бизнесу
+                </h1>
+                <p className="mt-4 max-w-xl text-base text-white/70 sm:text-lg">
+                  Тысячи верифицированных производителей, каталог товаров,
+                  логистика и переводы. Всё для безопасного выхода на рынок.
+                </p>
+                <Button
+                  size="lg"
+                  className="mt-8 h-12 w-fit bg-gold text-gold-foreground hover:bg-gold/90"
+                  onClick={() => navigate('/suppliers')}
+                >
+                  <Icon name="Search" size={18} className="mr-2" />
+                  Найти поставщика
+                </Button>
               </div>
-              <Button
-                size="lg"
-                className="h-11 bg-gold text-gold-foreground hover:bg-gold/90"
-                onClick={() => navigate('/suppliers')}
-              >
-                Искать
-              </Button>
             </div>
 
-            <div className="mt-10 grid grid-cols-2 gap-6 sm:grid-cols-4">
-              {STATS.map((s) => (
-                <div key={s.label}>
-                  <div className="font-display text-2xl font-700 text-gold md:text-3xl">
-                    {s.value}
+            {/* Right: seller registration */}
+            <Card className="border-border">
+              <CardContent className="flex h-full flex-col justify-center p-6 sm:p-8">
+                <h2 className="font-display text-xl font-700 text-navy sm:text-2xl">
+                  Регистрация поставщика
+                </h2>
+                <p className="mt-1 text-sm text-muted-foreground">
+                  Разместите свою компанию и товары для российских покупателей
+                </p>
+                <div className="mt-6 space-y-3">
+                  <div>
+                    <label className="mb-1.5 block text-sm font-500 text-navy">Название компании</label>
+                    <Input
+                      placeholder="ООО «Компания»"
+                      value={sellerForm.company_name}
+                      onChange={(e) => setSellerForm((f) => ({ ...f, company_name: e.target.value }))}
+                    />
                   </div>
-                  <div className="text-sm text-white/60">{s.label}</div>
+                  <div>
+                    <label className="mb-1.5 block text-sm font-500 text-navy">Email</label>
+                    <Input
+                      type="email"
+                      placeholder="email@company.com"
+                      value={sellerForm.email}
+                      onChange={(e) => setSellerForm((f) => ({ ...f, email: e.target.value }))}
+                    />
+                  </div>
+                  <div>
+                    <label className="mb-1.5 block text-sm font-500 text-navy">Пароль</label>
+                    <Input
+                      type="password"
+                      placeholder="Придумайте пароль"
+                      value={sellerForm.password}
+                      onChange={(e) => setSellerForm((f) => ({ ...f, password: e.target.value }))}
+                      onKeyDown={(e) => { if (e.key === 'Enter') submitSeller(); }}
+                    />
+                  </div>
                 </div>
-              ))}
-            </div>
+                <Button
+                  size="lg"
+                  className="mt-5 h-11 w-full bg-gold text-gold-foreground hover:bg-gold/90"
+                  disabled={sellerLoading}
+                  onClick={submitSeller}
+                >
+                  {sellerLoading ? 'Регистрация...' : 'Зарегистрироваться'}
+                </Button>
+                <Button
+                  variant="outline"
+                  className="mt-2 h-11 w-full border-navy text-navy hover:bg-secondary"
+                  onClick={() => navigate('/cabinet')}
+                >
+                  Уже есть аккаунт — Войти
+                </Button>
+              </CardContent>
+            </Card>
           </div>
         </div>
       </section>

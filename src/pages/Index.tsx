@@ -25,13 +25,13 @@ const FACTORY_IMG =
   'https://cdn.poehali.dev/projects/a67ff9c5-8157-472c-832f-296b77b78a02/files/2049d829-79a7-4c2f-a5d6-2d4802b8c55d.jpg';
 
 const NAV = [
-  { label: 'Главная', href: '/' },
-  { label: 'Товары', href: '/products' },
-  { label: 'Поставщики', href: '/suppliers' },
+  { label: '🏠 Главная', href: '/' },
+  { label: '📦 Товары', href: '/products' },
+  { label: '🏭 Поставщики', href: '/suppliers' },
   { label: '🎬 Видео', href: '/feed' },
-  { label: 'Логистика', href: '/logistics' },
-  { label: 'Новости', href: '/blog' },
-  { label: 'Контакты', href: '#contacts' },
+  { label: '🚚 Логистика', href: '/logistics' },
+  { label: '📰 Новости', href: '/blog' },
+  { label: '✉️ Контакты', href: '#contacts' },
 ];
 
 const STATS = [

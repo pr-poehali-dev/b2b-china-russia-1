@@ -606,7 +606,7 @@ const Index = () => {
             </div>
             <Button
               variant="outline"
-              className="border-white/30 bg-white/10 text-white hover:bg-white/10 hover:text-white"
+              className="border-white/30 text-white hover:bg-white/10 hover:text-white"
               onClick={() => navigate('/logistics')}
             >
               Все компании
@@ -672,17 +672,13 @@ const Index = () => {
               </div>
             </div>
             <div className="hidden md:flex items-center justify-center gap-3 p-8">
-              {(['Factory', 'Package', 'Cog'] as const).map((iconName, i) => (
+              {['🏭', '📦', '⚙️'].map((emoji, i) => (
                 <div
-                  key={iconName}
+                  key={i}
                   className="flex flex-col items-center justify-end rounded-2xl bg-white/10 backdrop-blur-sm border border-white/10 overflow-hidden"
                   style={{ width: 100, height: 178, transform: i === 1 ? 'translateY(-16px)' : 'none' }}
                 >
-                  <div className="flex-1 flex items-center justify-center">
-                    <div className="flex h-12 w-12 items-center justify-center rounded-full bg-gold/20">
-                      <Icon name={iconName} size={24} className="text-gold" />
-                    </div>
-                  </div>
+                  <div className="flex-1 flex items-center justify-center text-4xl">{emoji}</div>
                   <div className="w-full bg-black/40 p-2">
                     <div className="flex items-center gap-1 mb-1">
                       <div className="h-4 w-4 rounded-full bg-gold/60" />

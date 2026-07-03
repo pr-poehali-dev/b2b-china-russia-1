@@ -111,11 +111,27 @@ def handler(event: dict, context) -> dict:
             seller['generated_password'] = password if not body.get('password') else None
             return _resp(200, {'seller': seller})
 
-        # --- DELETE SELLER (+ его товары) ---
+        # --- DELETE SELLER (+ все связанные данные) ---
         if action == 'delete_seller' and method == 'POST':
             sid = body.get('id')
             if not sid:
                 return _resp(400, {'error': 'Укажите id'})
+            cur.execute("SELECT id FROM buyer_chats WHERE seller_id = %s", (sid,))
+            chat_ids = [r['id'] for r in cur.fetchall()]
+            if chat_ids:
+                cur.execute("DELETE FROM buyer_chat_messages WHERE chat_id = ANY(%s)", (chat_ids,))
+                cur.execute("DELETE FROM buyer_chats WHERE seller_id = %s", (sid,))
+            cur.execute("DELETE FROM buyer_notifications WHERE seller_id = %s", (sid,))
+            cur.execute("DELETE FROM leads WHERE seller_id = %s", (sid,))
+            cur.execute("DELETE FROM certificates WHERE seller_id = %s", (sid,))
+            cur.execute("SELECT id FROM media WHERE seller_id = %s", (sid,))
+            media_ids = [r['id'] for r in cur.fetchall()]
+            if media_ids:
+                cur.execute("DELETE FROM video_likes WHERE media_id = ANY(%s)", (media_ids,))
+                cur.execute("DELETE FROM video_views WHERE media_id = ANY(%s)", (media_ids,))
+            cur.execute("DELETE FROM video_views WHERE seller_id = %s", (sid,))
+            cur.execute("DELETE FROM media WHERE seller_id = %s", (sid,))
+            cur.execute("DELETE FROM premium_orders WHERE seller_id = %s", (sid,))
             cur.execute("DELETE FROM products WHERE seller_id = %s", (sid,))
             cur.execute("DELETE FROM sellers WHERE id = %s", (sid,))
             return _resp(200, {'ok': True})
@@ -155,6 +171,8 @@ def handler(event: dict, context) -> dict:
             pid = body.get('id')
             if not pid:
                 return _resp(400, {'error': 'Укажите id'})
+            cur.execute("UPDATE leads SET product_id = NULL WHERE product_id = %s", (pid,))
+            cur.execute("UPDATE media SET product_id = NULL WHERE product_id = %s", (pid,))
             cur.execute("DELETE FROM products WHERE id = %s", (pid,))
             return _resp(200, {'ok': True})
 

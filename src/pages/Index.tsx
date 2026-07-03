@@ -355,6 +355,92 @@ const Index = () => {
         </div>
       </section>
 
+      {/* Suppliers */}
+      <section className="bg-secondary/50 py-12 md:py-20">
+        <div className="container">
+          <div className="mb-5 flex flex-wrap items-end justify-between gap-3">
+            <div>
+              <p className="font-500 text-gold">Каталог поставщиков</p>
+              <h2 className="font-display text-2xl font-700 text-navy sm:text-3xl md:text-4xl">
+                Проверенные производители
+              </h2>
+            </div>
+            <Button variant="outline" className="border-navy text-navy" onClick={() => navigate('/suppliers')}>
+              Все поставщики
+              <Icon name="ArrowRight" size={16} className="ml-1" />
+            </Button>
+          </div>
+
+          <div className="mb-8 flex flex-wrap gap-2">
+            {['Все провинции', ...PROVINCES].map((p) => (
+              <button
+                key={p}
+                onClick={() => setActiveProvince(p)}
+                className={`rounded-full border px-4 py-1.5 text-sm font-500 transition-colors ${
+                  activeProvince === p
+                    ? 'border-navy bg-navy text-white'
+                    : 'border-border bg-background text-muted-foreground hover:border-navy'
+                }`}
+              >
+                {p}
+              </button>
+            ))}
+          </div>
+
+          <div className="grid gap-5 md:grid-cols-2">
+            {SUPPLIERS.map((s) => (
+              <Card key={s.name} className="hover-lift border-border">
+                <CardHeader className="flex flex-row items-start justify-between gap-3 space-y-0 pb-3">
+                  <div className="flex items-center gap-3">
+                    <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-navy font-display text-lg font-700 text-white">
+                      {s.name[0]}
+                    </div>
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <span className="font-600 text-navy">{s.name}</span>
+                        {s.verified && (
+                          <Icon
+                            name="BadgeCheck"
+                            size={16}
+                            className="text-gold"
+                          />
+                        )}
+                      </div>
+                      <div className="text-sm text-muted-foreground">
+                        {s.category} · {s.province}
+                      </div>
+                    </div>
+                  </div>
+                  <Badge className={tagColor[s.tag]}>{s.tag}</Badge>
+                </CardHeader>
+                <CardContent className="flex items-center justify-between pt-0">
+                  <div className="flex items-center gap-4 text-sm">
+                    <span className="flex items-center gap-1 font-600 text-navy">
+                      <Icon name="Star" size={15} className="text-gold" />
+                      {s.rating}
+                    </span>
+                    <span className="text-muted-foreground">
+                      {s.reviews} отзывов
+                    </span>
+                    <span className="text-muted-foreground">
+                      {s.years} лет на рынке
+                    </span>
+                  </div>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="border-navy text-navy"
+                    onClick={() => navigate(`/supplier/${s.id || 1}`)}
+                  >
+                    Профиль
+                  </Button>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        </div>
+      </section>
+
       {/* About platform */}
       <section className="container py-12 md:py-20">
         <div className="grid gap-10 md:grid-cols-2 md:items-center md:gap-16">
@@ -455,92 +541,6 @@ const Index = () => {
               </CardContent>
             </Card>
           ))}
-        </div>
-      </section>
-
-      {/* Suppliers */}
-      <section className="bg-secondary/50 py-12 md:py-20">
-        <div className="container">
-          <div className="mb-5 flex flex-wrap items-end justify-between gap-3">
-            <div>
-              <p className="font-500 text-gold">Каталог поставщиков</p>
-              <h2 className="font-display text-2xl font-700 text-navy sm:text-3xl md:text-4xl">
-                Проверенные производители
-              </h2>
-            </div>
-            <Button variant="outline" className="border-navy text-navy" onClick={() => navigate('/suppliers')}>
-              Все поставщики
-              <Icon name="ArrowRight" size={16} className="ml-1" />
-            </Button>
-          </div>
-
-          <div className="mb-8 flex flex-wrap gap-2">
-            {['Все провинции', ...PROVINCES].map((p) => (
-              <button
-                key={p}
-                onClick={() => setActiveProvince(p)}
-                className={`rounded-full border px-4 py-1.5 text-sm font-500 transition-colors ${
-                  activeProvince === p
-                    ? 'border-navy bg-navy text-white'
-                    : 'border-border bg-background text-muted-foreground hover:border-navy'
-                }`}
-              >
-                {p}
-              </button>
-            ))}
-          </div>
-
-          <div className="grid gap-5 md:grid-cols-2">
-            {SUPPLIERS.map((s) => (
-              <Card key={s.name} className="hover-lift border-border">
-                <CardHeader className="flex flex-row items-start justify-between gap-3 space-y-0 pb-3">
-                  <div className="flex items-center gap-3">
-                    <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-navy font-display text-lg font-700 text-white">
-                      {s.name[0]}
-                    </div>
-                    <div>
-                      <div className="flex items-center gap-2">
-                        <span className="font-600 text-navy">{s.name}</span>
-                        {s.verified && (
-                          <Icon
-                            name="BadgeCheck"
-                            size={16}
-                            className="text-gold"
-                          />
-                        )}
-                      </div>
-                      <div className="text-sm text-muted-foreground">
-                        {s.category} · {s.province}
-                      </div>
-                    </div>
-                  </div>
-                  <Badge className={tagColor[s.tag]}>{s.tag}</Badge>
-                </CardHeader>
-                <CardContent className="flex items-center justify-between pt-0">
-                  <div className="flex items-center gap-4 text-sm">
-                    <span className="flex items-center gap-1 font-600 text-navy">
-                      <Icon name="Star" size={15} className="text-gold" />
-                      {s.rating}
-                    </span>
-                    <span className="text-muted-foreground">
-                      {s.reviews} отзывов
-                    </span>
-                    <span className="text-muted-foreground">
-                      {s.years} лет на рынке
-                    </span>
-                  </div>
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    className="border-navy text-navy"
-                    onClick={() => navigate(`/supplier/${s.id || 1}`)}
-                  >
-                    Профиль
-                  </Button>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
         </div>
       </section>
 

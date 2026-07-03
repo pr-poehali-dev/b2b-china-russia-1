@@ -1,0 +1,8 @@
+{
+  "tests": [
+    {"name": "OPTIONS CORS", "method": "OPTIONS", "path": "/", "expectedStatus": 200},
+    {"name": "Login wrong password", "method": "POST", "path": "/?action=login", "body": {"password": "wrong-password-test"}, "expectedStatus": 401},
+    {"name": "Sellers without token", "method": "GET", "path": "/?action=sellers", "expectedStatus": 401},
+    {"name": "Products without token", "method": "GET", "path": "/?action=products", "expectedStatus": 401}
+  ]
+}

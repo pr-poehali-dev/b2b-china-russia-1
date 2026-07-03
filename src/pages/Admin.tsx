@@ -16,7 +16,7 @@ import {
 import { toast } from '@/hooks/use-toast';
 import {
   adminApi, getAdminToken, setAdminToken, clearAdminToken,
-  type AdminSeller, type AdminProduct, type AdminLogistics,
+  type AdminSeller, type AdminProduct, type AdminLogistics, type AdminBuyer,
 } from '@/lib/adminApi';
 
 const CATEGORIES = ['Электроника', 'Текстиль и одежда', 'Товары для дома', 'Автозапчасти', 'Промоборудование', 'Упаковка'];
@@ -405,15 +405,17 @@ const Admin = () => {
   const [sellers, setSellers] = useState<AdminSeller[]>([]);
   const [products, setProducts] = useState<AdminProduct[]>([]);
   const [logistics, setLogistics] = useState<AdminLogistics[]>([]);
+  const [buyers, setBuyers] = useState<AdminBuyer[]>([]);
   const [loading, setLoading] = useState(true);
 
   const loadData = async () => {
     setLoading(true);
     try {
-      const [s, p, l] = await Promise.all([adminApi.sellers(), adminApi.products(), adminApi.logistics()]);
+      const [s, p, l, b] = await Promise.all([adminApi.sellers(), adminApi.products(), adminApi.logistics(), adminApi.buyers()]);
       setSellers(s.sellers);
       setProducts(p.products);
       setLogistics(l.logistics);
+      setBuyers(b.buyers);
     } catch (e) {
       if ((e as Error).message.includes('авторизац')) {
         clearAdminToken();
@@ -489,6 +491,7 @@ const Admin = () => {
             <TabsTrigger value="sellers">Поставщики ({sellers.length})</TabsTrigger>
             <TabsTrigger value="products">Товары ({products.length})</TabsTrigger>
             <TabsTrigger value="logistics">Карго ({logistics.length})</TabsTrigger>
+            <TabsTrigger value="buyers">Покупатели ({buyers.length})</TabsTrigger>
           </TabsList>
 
           {/* SELLERS */}
@@ -646,6 +649,41 @@ const Admin = () => {
                           </AlertDialogContent>
                         </AlertDialog>
                       </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            )}
+          </TabsContent>
+
+          {/* BUYERS */}
+          <TabsContent value="buyers">
+            <div className="mb-4 flex items-center justify-between">
+              <h2 className="font-display text-xl font-700 text-navy">Зарегистрированные покупатели</h2>
+            </div>
+            {loading ? (
+              <div className="flex justify-center py-16"><Icon name="Loader2" size={32} className="animate-spin text-gold" /></div>
+            ) : buyers.length === 0 ? (
+              <Card className="border-dashed"><CardContent className="py-10 text-center text-muted-foreground">Покупателей пока нет</CardContent></Card>
+            ) : (
+              <div className="space-y-3">
+                {buyers.map((b) => (
+                  <Card key={b.id} className="border-border">
+                    <CardContent className="flex items-center justify-between gap-3 p-4">
+                      <div className="flex items-center gap-3">
+                        <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg bg-navy font-display font-700 text-white">
+                          {b.name[0]?.toUpperCase()}
+                        </div>
+                        <div>
+                          <div className="font-600 text-navy">{b.name}</div>
+                          <div className="text-sm text-muted-foreground">
+                            {b.email}{b.phone ? ` · ${b.phone}` : ''}{b.company ? ` · ${b.company}` : ''}
+                          </div>
+                        </div>
+                      </div>
+                      <span className="shrink-0 text-xs text-muted-foreground">
+                        {new Date(b.created_at).toLocaleDateString('ru-RU')}
+                      </span>
                     </CardContent>
                   </Card>
                 ))}

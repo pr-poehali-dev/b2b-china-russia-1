@@ -121,6 +121,13 @@ def handler(event: dict, context) -> dict:
             )
             return _resp(200, {'sellers': [dict(s) for s in cur.fetchall()]})
 
+        # --- BUYERS LIST (зарегистрированные покупатели) ---
+        if action == 'buyers' and method == 'GET':
+            cur.execute(
+                "SELECT id, name, email, phone, company, created_at FROM buyers ORDER BY created_at DESC"
+            )
+            return _resp(200, {'buyers': [dict(b) for b in cur.fetchall()]})
+
         # --- CREATE SELLER ---
         if action == 'add_seller' and method == 'POST':
             company = (body.get('company_name') or '').strip()

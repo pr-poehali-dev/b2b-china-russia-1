@@ -31,6 +31,15 @@ export interface AdminProduct {
   company_name: string;
 }
 
+export interface AdminBuyer {
+  id: number;
+  name: string;
+  email: string;
+  phone?: string;
+  company?: string;
+  created_at: string;
+}
+
 export interface AdminLogistics {
   id: number;
   company_name: string;
@@ -68,6 +77,7 @@ export const adminApi = {
   addSeller: (b: { company_name: string; email: string; password?: string; province?: string; category?: string; plan?: string }) =>
     call('add_seller', 'POST', b),
   deleteSeller: (id: number) => call('delete_seller', 'POST', { id }),
+  buyers: (): Promise<{ buyers: AdminBuyer[] }> => call('buyers', 'GET'),
   products: (): Promise<{ products: AdminProduct[] }> => call('products', 'GET'),
   addProduct: (b: { name: string; category?: string; price?: string; description?: string; image_url?: string; photos?: string[]; sku?: string; min_order?: string; quantity?: string }) =>
     call('add_product', 'POST', b),

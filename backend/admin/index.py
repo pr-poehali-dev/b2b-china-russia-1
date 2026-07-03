@@ -4,7 +4,9 @@ import hashlib
 import hmac
 import base64
 import time
+import uuid
 import psycopg2
+import boto3
 from psycopg2.extras import RealDictCursor
 
 CORS = {
@@ -27,6 +29,34 @@ def _db():
     conn = psycopg2.connect(dsn)
     conn.autocommit = True
     return conn, conn.cursor(cursor_factory=RealDictCursor)
+
+
+def _s3():
+    return boto3.client(
+        's3',
+        endpoint_url='https://bucket.poehali.dev',
+        aws_access_key_id=os.environ['AWS_ACCESS_KEY_ID'],
+        aws_secret_access_key=os.environ['AWS_SECRET_ACCESS_KEY'],
+    )
+
+
+def _cdn(key: str) -> str:
+    return f"https://cdn.poehali.dev/projects/{os.environ['AWS_ACCESS_KEY_ID']}/bucket/{key}"
+
+
+def _get_catalog_seller_id(cur) -> int:
+    '''Возвращает id системного поставщика-каталога (создаёт при первом обращении).'''
+    cur.execute("SELECT id FROM sellers WHERE is_catalog = TRUE LIMIT 1")
+    row = cur.fetchone()
+    if row:
+        return row['id']
+    pw_hash = hashlib.sha256((uuid.uuid4().hex + 'sb').encode()).hexdigest()
+    cur.execute(
+        "INSERT INTO sellers (company_name, email, password_hash, plan, is_catalog) "
+        "VALUES ('Каталог сайта', %s, %s, 'Verified', TRUE) RETURNING id",
+        (f"catalog-{uuid.uuid4().hex[:10]}@internal.local", pw_hash),
+    )
+    return cur.fetchone()['id']
 
 
 def _resp(status: int, body: dict):
@@ -87,7 +117,7 @@ def handler(event: dict, context) -> dict:
         if action == 'sellers' and method == 'GET':
             cur.execute(
                 "SELECT id, company_name, email, province, category, plan, rating, "
-                "reviews_count, created_at FROM sellers ORDER BY created_at DESC"
+                "reviews_count, created_at FROM sellers WHERE is_catalog IS NOT TRUE ORDER BY created_at DESC"
             )
             return _resp(200, {'sellers': [dict(s) for s in cur.fetchall()]})
 
@@ -146,15 +176,12 @@ def handler(event: dict, context) -> dict:
             )
             return _resp(200, {'products': [dict(p) for p in cur.fetchall()]})
 
-        # --- ADD PRODUCT (от имени любого поставщика) ---
+        # --- ADD PRODUCT (в общий каталог сайта) ---
         if action == 'add_product' and method == 'POST':
-            seller_id = body.get('seller_id')
             name = (body.get('name') or '').strip()
-            if not seller_id or not name:
-                return _resp(400, {'error': 'Укажите поставщика и название товара'})
-            cur.execute("SELECT id FROM sellers WHERE id = %s", (seller_id,))
-            if not cur.fetchone():
-                return _resp(404, {'error': 'Поставщик не найден'})
+            if not name:
+                return _resp(400, {'error': 'Укажите название товара'})
+            seller_id = _get_catalog_seller_id(cur)
             photos = body.get('photos', [])
             image_url = photos[0] if photos else body.get('image_url')
             cur.execute(
@@ -164,7 +191,10 @@ def handler(event: dict, context) -> dict:
                 (seller_id, name, body.get('category'), body.get('price'), body.get('description'),
                  image_url, photos, body.get('sku'), body.get('min_order'), body.get('quantity')),
             )
-            return _resp(200, {'product': dict(cur.fetchone())})
+            product = dict(cur.fetchone())
+            product['seller_id'] = seller_id
+            product['company_name'] = 'Каталог сайта'
+            return _resp(200, {'product': product})
 
         # --- DELETE PRODUCT (полностью) ---
         if action == 'delete_product' and method == 'POST':
@@ -175,6 +205,96 @@ def handler(event: dict, context) -> dict:
             cur.execute("UPDATE media SET product_id = NULL WHERE product_id = %s", (pid,))
             cur.execute("DELETE FROM products WHERE id = %s", (pid,))
             return _resp(200, {'ok': True})
+
+        # --- UPLOAD PHOTO (для товаров каталога) ---
+        if action == 'upload_photo' and method == 'POST':
+            file_b64 = body.get('file')
+            content_type = body.get('content_type', 'image/jpeg')
+            if not file_b64:
+                return _resp(400, {'error': 'Нет файла'})
+            try:
+                file_bytes = base64.b64decode(file_b64)
+            except Exception:
+                return _resp(400, {'error': 'Неверный base64'})
+            ext_map = {'image/jpeg': 'jpg', 'image/png': 'png', 'image/webp': 'webp', 'image/gif': 'gif'}
+            ext = ext_map.get(content_type, 'jpg')
+            key = f"products/catalog/{uuid.uuid4().hex}.{ext}"
+            s3 = _s3()
+            s3.put_object(Bucket='files', Key=key, Body=file_bytes, ContentType=content_type)
+            return _resp(200, {'url': _cdn(key)})
+
+        # --- IMPORT PRODUCTS FROM EXCEL/CSV (в общий каталог сайта) ---
+        if action == 'import_excel' and method == 'POST':
+            import io, csv
+            file_b64 = body.get('file')
+            filename = body.get('filename', 'import.csv')
+            if not file_b64:
+                return _resp(400, {'error': 'Нет файла'})
+            try:
+                file_bytes = base64.b64decode(file_b64)
+            except Exception:
+                return _resp(400, {'error': 'Неверный base64'})
+
+            ext = filename.lower().rsplit('.', 1)[-1] if '.' in filename else 'csv'
+            rows = []
+
+            if ext in ('xlsx', 'xls'):
+                try:
+                    import openpyxl
+                    wb = openpyxl.load_workbook(io.BytesIO(file_bytes), data_only=True)
+                    ws = wb.active
+                    headers_row = [str(c.value or '').strip().lower() for c in next(ws.iter_rows(min_row=1, max_row=1))]
+                    for row in ws.iter_rows(min_row=2, values_only=True):
+                        rows.append(dict(zip(headers_row, [str(v or '').strip() for v in row])))
+                except Exception as e:
+                    return _resp(400, {'error': f'Ошибка чтения Excel: {e}'})
+            else:
+                try:
+                    text = file_bytes.decode('utf-8-sig')
+                    reader = csv.DictReader(io.StringIO(text))
+                    for row in reader:
+                        rows.append({k.strip().lower(): v.strip() for k, v in row.items()})
+                except Exception as e:
+                    return _resp(400, {'error': f'Ошибка чтения CSV: {e}'})
+
+            if not rows:
+                return _resp(400, {'error': 'Файл пустой или нет данных'})
+
+            def pick(row, *keys):
+                for k in keys:
+                    if k in row and row[k]:
+                        return row[k]
+                return ''
+
+            seller_id = _get_catalog_seller_id(cur)
+            imported = []
+            errors = []
+            for i, row in enumerate(rows[:200]):
+                name = pick(row, 'название', 'name', 'наименование', 'товар', 'product')
+                if not name:
+                    errors.append(f'Строка {i+2}: нет названия')
+                    continue
+                category = pick(row, 'категория', 'category')
+                price = pick(row, 'цена', 'price', 'стоимость')
+                description = pick(row, 'описание', 'description')
+                image_url = pick(row, 'фото', 'photo', 'image', 'image_url', 'url')
+                sku = pick(row, 'артикул', 'sku', 'код')
+                min_order = pick(row, 'мин. заказ', 'min_order', 'минимальный заказ')
+                quantity = pick(row, 'количество', 'quantity', 'остаток')
+
+                cur.execute(
+                    "INSERT INTO products (seller_id, name, category, price, description, image_url, sku, min_order, quantity) "
+                    "VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s) "
+                    "RETURNING id, name, category, price, description, image_url, status, views, sku, min_order, quantity, created_at",
+                    (seller_id, name, category or None, price or None, description or None,
+                     image_url or None, sku or None, min_order or None, quantity or None)
+                )
+                p = dict(cur.fetchone())
+                p['seller_id'] = seller_id
+                p['company_name'] = 'Каталог сайта'
+                imported.append(p)
+
+            return _resp(200, {'imported': imported, 'count': len(imported), 'errors': errors})
 
         # --- ADD LOGISTICS (КАРГО) ---
         if action == 'add_logistics' and method == 'POST':

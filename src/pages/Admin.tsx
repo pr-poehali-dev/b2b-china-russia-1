@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Icon from '@/components/ui/icon';
 import { Button } from '@/components/ui/button';
@@ -138,25 +138,61 @@ const AddSellerDialog = ({ onAdded }: { onAdded: (s: AdminSeller) => void }) => 
   );
 };
 
+// ---------- helpers ----------
+function toBase64(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve((reader.result as string).split(',')[1]);
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
+
 // ---------- ADD PRODUCT DIALOG ----------
-const AddProductDialog = ({ sellers, onAdded }: { sellers: AdminSeller[]; onAdded: (p: AdminProduct) => void }) => {
+const EMPTY_PRODUCT_FORM = { name: '', category: '', price: '', description: '', sku: '', min_order: '', quantity: '' };
+
+const AddProductDialog = ({ onAdded, onImported }: { onAdded: (p: AdminProduct) => void; onImported: (ps: AdminProduct[]) => void }) => {
   const [open, setOpen] = useState(false);
-  const [form, setForm] = useState({ seller_id: '', name: '', category: '', price: '', description: '' });
+  const [form, setForm] = useState(EMPTY_PRODUCT_FORM);
+  const [photos, setPhotos] = useState<string[]>([]);
+  const [uploading, setUploading] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [importing, setImporting] = useState(false);
+  const [lightbox, setLightbox] = useState<string | null>(null);
+  const photoInputRef = useRef<HTMLInputElement>(null);
+  const excelInputRef = useRef<HTMLInputElement>(null);
   const set = (k: string, v: string) => setForm((f) => ({ ...f, [k]: v }));
 
+  const handlePhotoFiles = async (files: FileList | null) => {
+    if (!files || !files.length) return;
+    setUploading(true);
+    try {
+      const urls: string[] = [];
+      for (let i = 0; i < Math.min(files.length, 8); i++) {
+        const b64 = await toBase64(files[i]);
+        const res = await adminApi.uploadPhoto(b64, files[i].type);
+        urls.push(res.url);
+      }
+      setPhotos((prev) => [...prev, ...urls].slice(0, 8));
+    } catch (e) {
+      toast({ title: 'Ошибка загрузки фото', description: (e as Error).message, variant: 'destructive' });
+    } finally {
+      setUploading(false);
+    }
+  };
+
   const submit = async () => {
-    if (!form.seller_id || !form.name.trim()) {
-      toast({ title: 'Выберите поставщика и укажите название товара', variant: 'destructive' });
+    if (!form.name.trim()) {
+      toast({ title: 'Укажите название товара', variant: 'destructive' });
       return;
     }
     setLoading(true);
     try {
-      const res = await adminApi.addProduct({ ...form, seller_id: Number(form.seller_id) });
-      const seller = sellers.find((s) => s.id === Number(form.seller_id));
-      onAdded({ ...res.product, seller_id: Number(form.seller_id), company_name: seller?.company_name || '' });
-      toast({ title: 'Товар добавлен' });
-      setForm({ seller_id: '', name: '', category: '', price: '', description: '' });
+      const res = await adminApi.addProduct({ ...form, photos, image_url: photos[0] });
+      onAdded(res.product);
+      toast({ title: 'Товар добавлен в каталог' });
+      setForm(EMPTY_PRODUCT_FORM);
+      setPhotos([]);
       setOpen(false);
     } catch (e) {
       toast({ title: 'Ошибка', description: (e as Error).message, variant: 'destructive' });
@@ -165,40 +201,122 @@ const AddProductDialog = ({ sellers, onAdded }: { sellers: AdminSeller[]; onAdde
     }
   };
 
+  const handleExcel = async (files: FileList | null) => {
+    if (!files?.[0]) return;
+    setImporting(true);
+    try {
+      const b64 = await toBase64(files[0]);
+      const result = await adminApi.importExcel(b64, files[0].name);
+      onImported(result.imported);
+      toast({
+        title: `Импортировано ${result.count} товаров`,
+        description: result.errors.length ? `Пропущено: ${result.errors.slice(0, 3).join('; ')}` : undefined,
+      });
+      setOpen(false);
+    } catch (e) {
+      toast({ title: 'Ошибка импорта', description: (e as Error).message, variant: 'destructive' });
+    } finally {
+      setImporting(false);
+      if (excelInputRef.current) excelInputRef.current.value = '';
+    }
+  };
+
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
-        <Button className="bg-gold text-gold-foreground hover:bg-gold/90">
-          <Icon name="Plus" size={16} className="mr-1" />
-          Добавить товар
-        </Button>
-      </DialogTrigger>
-      <DialogContent>
-        <DialogHeader>
-          <DialogTitle className="font-display text-navy">Новый товар</DialogTitle>
-        </DialogHeader>
-        <div className="space-y-3">
-          <select className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm" value={form.seller_id} onChange={(e) => set('seller_id', e.target.value)}>
-            <option value="">Выберите поставщика *</option>
-            {sellers.map((s) => <option key={s.id} value={s.id}>{s.company_name}</option>)}
-          </select>
-          <Input placeholder="Название товара *" value={form.name} onChange={(e) => set('name', e.target.value)} />
-          <div className="grid grid-cols-2 gap-3">
-            <select className="h-10 rounded-md border border-input bg-background px-3 text-sm" value={form.category} onChange={(e) => set('category', e.target.value)}>
+    <div className="flex gap-2">
+      {/* Lightbox */}
+      {lightbox && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4" onClick={() => setLightbox(null)}>
+          <img src={lightbox} className="max-h-[90vh] max-w-[90vw] rounded-xl object-contain" />
+          <button className="absolute right-4 top-4 text-white"><Icon name="X" size={28} /></button>
+        </div>
+      )}
+
+      <input ref={excelInputRef} type="file" accept=".xlsx,.xls,.csv" className="hidden"
+        onChange={(e) => handleExcel(e.target.files)} />
+      <Button variant="outline" className="border-navy text-navy" disabled={importing}
+        onClick={() => excelInputRef.current?.click()}>
+        {importing
+          ? <><Icon name="Loader2" size={15} className="mr-1 animate-spin" />Импорт...</>
+          : <><Icon name="FileSpreadsheet" size={15} className="mr-1" />Excel / CSV</>}
+      </Button>
+
+      <Dialog open={open} onOpenChange={(v) => { setOpen(v); if (!v) { setForm(EMPTY_PRODUCT_FORM); setPhotos([]); } }}>
+        <DialogTrigger asChild>
+          <Button className="bg-gold text-gold-foreground hover:bg-gold/90">
+            <Icon name="Plus" size={16} className="mr-1" />
+            Добавить товар
+          </Button>
+        </DialogTrigger>
+        <DialogContent className="max-w-xl">
+          <DialogHeader><DialogTitle className="font-display text-navy">Новый товар в каталог</DialogTitle></DialogHeader>
+          <div className="max-h-[65vh] overflow-y-auto space-y-3 pr-1">
+
+            {/* Photos upload */}
+            <div>
+              <p className="mb-2 text-sm font-500 text-navy">Фотографии товара (до 8 шт.)</p>
+              <div className="grid grid-cols-4 gap-2">
+                {photos.map((url, i) => (
+                  <div key={i} className="group relative aspect-square overflow-hidden rounded-lg border border-border bg-secondary cursor-pointer"
+                    onClick={() => setLightbox(url)}>
+                    <img src={url} className="h-full w-full object-cover" />
+                    {i === 0 && <span className="absolute left-1 top-1 rounded bg-gold px-1 text-[10px] font-600 text-gold-foreground">Главное</span>}
+                    <button className="absolute right-1 top-1 hidden rounded-full bg-black/60 p-0.5 group-hover:block"
+                      onClick={(e) => { e.stopPropagation(); setPhotos((ps) => ps.filter((_, j) => j !== i)); }}>
+                      <Icon name="X" size={12} className="text-white" />
+                    </button>
+                  </div>
+                ))}
+                {photos.length < 8 && (
+                  <button
+                    className="aspect-square rounded-lg border-2 border-dashed border-border flex flex-col items-center justify-center gap-1 hover:border-gold transition-colors text-muted-foreground hover:text-gold"
+                    onClick={() => photoInputRef.current?.click()}
+                    disabled={uploading}
+                  >
+                    {uploading
+                      ? <Icon name="Loader2" size={20} className="animate-spin" />
+                      : <><Icon name="ImagePlus" size={20} /><span className="text-[10px]">Добавить</span></>}
+                  </button>
+                )}
+              </div>
+              <input ref={photoInputRef} type="file" accept="image/*" multiple className="hidden"
+                onChange={(e) => handlePhotoFiles(e.target.files)} />
+              {photos.length === 0 && (
+                <button
+                  className="mt-2 w-full rounded-lg border-2 border-dashed border-border py-6 text-center hover:border-gold transition-colors"
+                  onClick={() => photoInputRef.current?.click()}
+                  disabled={uploading}
+                >
+                  {uploading
+                    ? <><Icon name="Loader2" size={18} className="inline animate-spin mr-2" />Загрузка...</>
+                    : <><Icon name="Upload" size={18} className="inline mr-2 text-gold" />Перетащите фото или нажмите для выбора</>}
+                </button>
+              )}
+            </div>
+
+            <Input placeholder="Название товара *" value={form.name} onChange={(e) => set('name', e.target.value)} />
+            <select className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm" value={form.category} onChange={(e) => set('category', e.target.value)}>
               <option value="">Категория</option>
               {CATEGORIES.map((c) => <option key={c} value={c}>{c}</option>)}
             </select>
-            <Input placeholder="Цена" value={form.price} onChange={(e) => set('price', e.target.value)} />
+            <div className="grid grid-cols-2 gap-3">
+              <Input placeholder="Цена (напр. от $5/шт.)" value={form.price} onChange={(e) => set('price', e.target.value)} />
+              <Input placeholder="Артикул / SKU" value={form.sku} onChange={(e) => set('sku', e.target.value)} />
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <Input placeholder="Мин. заказ (напр. 100 шт.)" value={form.min_order} onChange={(e) => set('min_order', e.target.value)} />
+              <Input placeholder="Остаток на складе" value={form.quantity} onChange={(e) => set('quantity', e.target.value)} />
+            </div>
+            <Textarea placeholder="Описание товара" value={form.description} onChange={(e) => set('description', e.target.value)} className="min-h-24" />
           </div>
-          <Input placeholder="Описание" value={form.description} onChange={(e) => set('description', e.target.value)} />
-        </div>
-        <DialogFooter>
-          <Button className="w-full bg-gold text-gold-foreground hover:bg-gold/90" disabled={loading} onClick={submit}>
-            {loading ? 'Добавление...' : 'Добавить'}
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setOpen(false)}>Отмена</Button>
+            <Button className="bg-gold text-gold-foreground hover:bg-gold/90" disabled={loading} onClick={submit}>
+              {loading ? 'Добавление...' : 'Добавить'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </div>
   );
 };
 
@@ -427,7 +545,10 @@ const Admin = () => {
           <TabsContent value="products">
             <div className="mb-4 flex items-center justify-between">
               <h2 className="font-display text-xl font-700 text-navy">Все товары</h2>
-              <AddProductDialog sellers={sellers} onAdded={(p) => setProducts((prev) => [p, ...prev])} />
+              <AddProductDialog
+                onAdded={(p) => setProducts((prev) => [p, ...prev])}
+                onImported={(ps) => setProducts((prev) => [...ps, ...prev])}
+              />
             </div>
             {loading ? (
               <div className="flex justify-center py-16"><Icon name="Loader2" size={32} className="animate-spin text-gold" /></div>

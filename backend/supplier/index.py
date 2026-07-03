@@ -103,7 +103,7 @@ def handler(event: dict, context) -> dict:
             search = params.get('q')
             plan = params.get('plan')
 
-            conditions = ['1=1']
+            conditions = ['is_catalog IS NOT TRUE']
             args = []
 
             if province:

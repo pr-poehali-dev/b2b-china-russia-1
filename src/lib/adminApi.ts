@@ -69,9 +69,13 @@ export const adminApi = {
     call('add_seller', 'POST', b),
   deleteSeller: (id: number) => call('delete_seller', 'POST', { id }),
   products: (): Promise<{ products: AdminProduct[] }> => call('products', 'GET'),
-  addProduct: (b: { seller_id: number; name: string; category?: string; price?: string; description?: string; image_url?: string; sku?: string; min_order?: string; quantity?: string }) =>
+  addProduct: (b: { name: string; category?: string; price?: string; description?: string; image_url?: string; photos?: string[]; sku?: string; min_order?: string; quantity?: string }) =>
     call('add_product', 'POST', b),
   deleteProduct: (id: number) => call('delete_product', 'POST', { id }),
+  uploadPhoto: (file: string, content_type: string): Promise<{ url: string }> =>
+    call('upload_photo', 'POST', { file, content_type }),
+  importExcel: (file: string, filename: string): Promise<{ imported: AdminProduct[]; count: number; errors: string[] }> =>
+    call('import_excel', 'POST', { file, filename }),
   logistics: (): Promise<{ logistics: AdminLogistics[] }> => call('logistics', 'GET'),
   addLogistics: (b: { company_name: string; type: string; logo_url?: string; description?: string; routes?: string; transit_time?: string; min_weight?: string; phone?: string; email?: string; website?: string; telegram?: string; wechat?: string; featured?: boolean }) =>
     call('add_logistics', 'POST', b),

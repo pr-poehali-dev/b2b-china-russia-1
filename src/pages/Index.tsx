@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { blogApi, type Article } from '@/lib/blogApi';
 import { supplierApi } from '@/lib/supplierApi';
 import Icon from '@/components/ui/icon';
+import Emoji3D from '@/components/ui/emoji3d';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
@@ -388,8 +389,8 @@ const Index = () => {
               onClick={() => navigate(`/products?category=${encodeURIComponent(c.name)}`)}
             >
               <CardContent className="flex flex-col gap-2 p-3 sm:gap-3 sm:p-6">
-                <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-secondary text-navy sm:h-12 sm:w-12">
-                  <Icon name={c.icon} size={20} />
+                <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-secondary sm:h-12 sm:w-12">
+                  <Emoji3D name={c.icon} size={28} />
                 </div>
                 <div>
                   <div className="text-sm font-600 text-navy sm:text-base">{c.name}</div>

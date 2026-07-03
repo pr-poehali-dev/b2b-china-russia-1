@@ -18,6 +18,7 @@ import {
   TabsContent,
 } from '@/components/ui/tabs';
 import { Textarea } from '@/components/ui/textarea';
+import OnlineVisitors from '@/components/OnlineVisitors';
 
 const FACTORY_IMG =
   'https://cdn.poehali.dev/projects/a67ff9c5-8157-472c-832f-296b77b78a02/files/2049d829-79a7-4c2f-a5d6-2d4802b8c55d.jpg';
@@ -195,6 +196,7 @@ const Index = () => {
             ))}
           </nav>
           <div className="flex items-center gap-2">
+            <OnlineVisitors />
             <Button
               className="hidden sm:inline-flex bg-gold text-gold-foreground hover:bg-gold/90"
               onClick={() => navigate('/cabinet')}

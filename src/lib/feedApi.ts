@@ -62,4 +62,6 @@ export const feedApi = {
       headers: { 'Content-Type': 'application/json', 'X-Visitor-Id': getVid(), 'X-Auth-Token': token },
       body: JSON.stringify({ media_id, caption, hashtags, category }),
     }).then(r => r.json()),
+  ping: (): Promise<{ online: number }> => post('ping', {}),
+  onlineCount: (): Promise<{ online: number }> => get('online_count'),
 };

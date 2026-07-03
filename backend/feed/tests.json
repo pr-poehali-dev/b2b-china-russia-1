@@ -3,6 +3,8 @@
     {"name": "OPTIONS CORS", "method": "OPTIONS", "path": "/", "expectedStatus": 200},
     {"name": "Feed new", "method": "GET", "path": "/?action=feed&tab=new", "expectedStatus": 200},
     {"name": "Like without body", "method": "POST", "path": "/?action=like", "body": {}, "expectedStatus": 400},
-    {"name": "Analytics without seller_id", "method": "GET", "path": "/?action=analytics", "expectedStatus": 400}
+    {"name": "Analytics without seller_id", "method": "GET", "path": "/?action=analytics", "expectedStatus": 400},
+    {"name": "Online count", "method": "GET", "path": "/?action=online_count", "expectedStatus": 200},
+    {"name": "Ping", "method": "POST", "path": "/?action=ping", "body": {}, "expectedStatus": 200}
   ]
 }

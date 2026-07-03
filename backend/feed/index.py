@@ -198,6 +198,25 @@ def handler(event: dict, context) -> dict:
             )
             return _resp(200, {'ok': True})
 
+        # --- ONLINE PING (heartbeat от посетителя) ---
+        if action == 'ping' and method == 'POST':
+            cur.execute(
+                "INSERT INTO online_visitors (visitor_id, last_seen) VALUES (%s, now()) "
+                "ON CONFLICT (visitor_id) DO UPDATE SET last_seen = now()",
+                (visitor_id,)
+            )
+            cur.execute("DELETE FROM online_visitors WHERE last_seen < now() - interval '2 minutes'")
+            cur.execute("SELECT COUNT(*) AS cnt FROM online_visitors")
+            row = cur.fetchone()
+            return _resp(200, {'online': row['cnt'] if row else 1})
+
+        # --- ONLINE COUNT ---
+        if action == 'online_count' and method == 'GET':
+            cur.execute("DELETE FROM online_visitors WHERE last_seen < now() - interval '2 minutes'")
+            cur.execute("SELECT COUNT(*) AS cnt FROM online_visitors")
+            row = cur.fetchone()
+            return _resp(200, {'online': row['cnt'] if row else 0})
+
         return _resp(404, {'error': 'Неизвестное действие'})
     finally:
         cur.close()

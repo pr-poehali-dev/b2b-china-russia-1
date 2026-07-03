@@ -901,12 +901,6 @@ const Index = () => {
                   {n.label}
                 </a>
               ))}
-              <Button
-                className="bg-gold text-gold-foreground hover:bg-gold/90"
-                onClick={() => navigate('/cabinet')}
-              >
-                Кабинет продавца
-              </Button>
             </nav>
           </div>
           <div className="mt-8 flex flex-col gap-2 border-t border-white/10 pt-6 text-sm sm:flex-row sm:items-center sm:justify-between">

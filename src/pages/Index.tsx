@@ -300,6 +300,74 @@ const Index = () => {
         </div>
       </section>
 
+      {/* About platform */}
+      <section className="container py-12 md:py-20">
+        <div className="grid gap-10 md:grid-cols-2 md:items-center md:gap-16">
+          <div>
+            <p className="font-500 text-gold">О платформе</p>
+            <h2 className="font-display text-2xl font-700 text-navy sm:text-3xl md:text-4xl">
+              Витрина китайских производителей для российского бизнеса
+            </h2>
+            <p className="mt-4 text-base text-muted-foreground sm:text-lg">
+              Между Китаем и Россией остаётся высокий спрос на поиск надёжных поставщиков,
+              но многие китайские компании не умеют эффективно продвигаться на российском рынке,
+              а российским покупателям сложно находить проверенных производителей.
+            </p>
+            <p className="mt-4 text-base text-muted-foreground sm:text-lg">
+              ChineseCart — B2B-экосистема для торговли между Китаем и Россией. Мы не очередной
+              маркетплейс: наш акцент — на доверии, качестве информации и удобстве коммуникации
+              между поставщиками и российскими покупателями.
+            </p>
+          </div>
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <Card className="border-border">
+              <CardContent className="flex flex-col gap-3 p-5 sm:p-6">
+                <div className="flex h-11 w-11 items-center justify-center rounded-lg bg-gold/15 text-gold">
+                  <Icon name="ShieldCheck" size={22} />
+                </div>
+                <div className="font-600 text-navy">Доверие и проверка</div>
+                <p className="text-sm text-muted-foreground">
+                  Только верифицированные производители с прозрачной информацией о компании.
+                </p>
+              </CardContent>
+            </Card>
+            <Card className="border-border">
+              <CardContent className="flex flex-col gap-3 p-5 sm:p-6">
+                <div className="flex h-11 w-11 items-center justify-center rounded-lg bg-gold/15 text-gold">
+                  <Icon name="Megaphone" size={22} />
+                </div>
+                <div className="font-600 text-navy">Витрина, а не маркетплейс</div>
+                <p className="text-sm text-muted-foreground">
+                  Простой способ для китайских производителей заявить о себе на российском рынке.
+                </p>
+              </CardContent>
+            </Card>
+            <Card className="border-border">
+              <CardContent className="flex flex-col gap-3 p-5 sm:p-6">
+                <div className="flex h-11 w-11 items-center justify-center rounded-lg bg-gold/15 text-gold">
+                  <Icon name="MessagesSquare" size={22} />
+                </div>
+                <div className="font-600 text-navy">Удобная коммуникация</div>
+                <p className="text-sm text-muted-foreground">
+                  Прямой диалог между поставщиком и покупателем без лишних посредников.
+                </p>
+              </CardContent>
+            </Card>
+            <Card className="border-border">
+              <CardContent className="flex flex-col gap-3 p-5 sm:p-6">
+                <div className="flex h-11 w-11 items-center justify-center rounded-lg bg-gold/15 text-gold">
+                  <Icon name="Handshake" size={22} />
+                </div>
+                <div className="font-600 text-navy">Быстрый поиск партнёра</div>
+                <p className="text-sm text-muted-foreground">
+                  Российские компании находят надёжного производителя за считанные минуты.
+                </p>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
+      </section>
+
       {/* Categories */}
       <section className="container py-12 md:py-20">
         <div className="mb-6 flex flex-wrap items-end justify-between gap-3">

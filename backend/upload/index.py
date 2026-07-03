@@ -185,7 +185,7 @@ def handler(event: dict, context) -> dict:
             'errors': errors,
         })
 
-    # --- UPLOAD VIDEO (прямой put_object, лимит ~7 МБ base64) ---
+    # --- UPLOAD VIDEO (маленькие файлы, прямой put_object через base64) ---
     if action == 'video_upload':
         file_b64 = body.get('file')
         content_type = body.get('content_type', 'video/mp4')
@@ -197,7 +197,7 @@ def handler(event: dict, context) -> dict:
             return _resp(400, {'error': 'Неверный base64'})
         max_bytes = 7 * 1024 * 1024
         if len(file_bytes) > max_bytes:
-            return _resp(413, {'error': f'Файл слишком большой: {len(file_bytes)//1024//1024} МБ. Максимум 7 МБ.'})
+            return _resp(413, {'error': f'Файл слишком большой: {len(file_bytes)//1024//1024} МБ. Максимум 7 МБ для этого способа — используйте video_presign.'})
         ext_map = {
             'video/mp4': 'mp4', 'video/quicktime': 'mov',
             'video/x-msvideo': 'avi', 'video/webm': 'webm', 'video/mpeg': 'mpg',
@@ -206,5 +206,25 @@ def handler(event: dict, context) -> dict:
         key = f"media/{seller_id}/videos/{uuid.uuid4().hex}.{ext}"
         s3.put_object(Bucket='files', Key=key, Body=file_bytes, ContentType=content_type)
         return _resp(200, {'url': _cdn(key)})
+
+    # --- VIDEO PRESIGN (большие файлы до 200 МБ, прямая загрузка браузера в S3) ---
+    if action == 'video_presign':
+        content_type = body.get('content_type', 'video/mp4')
+        size = int(body.get('size', 0))
+        max_bytes = 200 * 1024 * 1024
+        if size > max_bytes:
+            return _resp(413, {'error': f'Файл слишком большой: {size // 1024 // 1024} МБ. Максимум 200 МБ.'})
+        ext_map = {
+            'video/mp4': 'mp4', 'video/quicktime': 'mov',
+            'video/x-msvideo': 'avi', 'video/webm': 'webm', 'video/mpeg': 'mpg',
+        }
+        ext = ext_map.get(content_type, 'mp4')
+        key = f"media/{seller_id}/videos/{uuid.uuid4().hex}.{ext}"
+        put_url = s3.generate_presigned_url(
+            'put_object',
+            Params={'Bucket': 'files', 'Key': key, 'ContentType': content_type},
+            ExpiresIn=3600,
+        )
+        return _resp(200, {'put_url': put_url, 'cdn_url': _cdn(key)})
 
     return _resp(404, {'error': 'Неизвестное действие'})

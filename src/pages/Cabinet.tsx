@@ -660,9 +660,9 @@ const ReelsTab = ({ media, onAdded, onDeleted, seller }: {
             <p className="mt-1 text-xs text-muted-foreground">#станки #одежда #мебель #производство — помогают покупателям найти вас</p>
           </div>
 
-          <div className="rounded-lg bg-amber-50 border border-amber-200 px-3 py-2 text-xs text-amber-700 flex items-center gap-1.5">
+          <div className="rounded-lg bg-secondary px-3 py-2 text-xs text-muted-foreground flex items-center gap-1.5">
             <Icon name="Info" size={13} />
-            Максимум 7 МБ. Сожмите на <a href="https://www.veed.io/compress-video" target="_blank" rel="noreferrer" className="underline font-500">veed.io</a> если файл больше.
+            Максимальный размер видео — 200 МБ.
           </div>
 
           {videoProgress !== null && (

@@ -6,6 +6,8 @@ import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
 import { supplierApi, type PublicSeller } from '@/lib/supplierApi';
+import { buyerApi, isBuyerAuthed } from '@/lib/buyerApi';
+import { toast } from '@/hooks/use-toast';
 
 const PROVINCES = ['Гуандун', 'Чжэцзян', 'Цзянсу', 'Шаньдун', 'Фуцзянь', 'Хэбэй', 'Шанхай', 'Пекин'];
 const CATEGORIES = ['Электроника', 'Текстиль и одежда', 'Товары для дома', 'Автозапчасти', 'Промоборудование', 'Упаковка', 'Красота и здоровье', 'Игрушки и хобби'];
@@ -20,6 +22,25 @@ const PLAN_BADGE: Record<string, string> = {
 
 const SupplierCard = ({ seller }: { seller: PublicSeller }) => {
   const navigate = useNavigate();
+  const [chatLoading, setChatLoading] = useState(false);
+
+  const openChat = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (!isBuyerAuthed()) {
+      navigate('/account');
+      return;
+    }
+    setChatLoading(true);
+    try {
+      await buyerApi.chatStart(seller.id);
+      navigate('/account');
+    } catch (err) {
+      toast({ title: 'Ошибка', description: (err as Error).message, variant: 'destructive' });
+    } finally {
+      setChatLoading(false);
+    }
+  };
+
   return (
     <Card
       className="hover-lift cursor-pointer border-border transition-shadow"
@@ -59,7 +80,17 @@ const SupplierCard = ({ seller }: { seller: PublicSeller }) => {
             </span>
             <span className="text-muted-foreground">{seller.reviews_count} отзывов</span>
           </div>
-          <span className="text-sm font-500 text-gold hover:underline">Открыть профиль →</span>
+          <div className="flex items-center gap-3">
+            <button
+              onClick={openChat}
+              disabled={chatLoading}
+              className="flex items-center gap-1 text-sm font-500 text-navy hover:text-gold transition-colors"
+            >
+              <Icon name="MessageCircle" size={14} />
+              Написать
+            </button>
+            <span className="text-sm font-500 text-gold hover:underline">Открыть профиль →</span>
+          </div>
         </div>
       </CardContent>
     </Card>

@@ -205,7 +205,7 @@ const Index = () => {
               <Icon name="Container" size={20} />
             </div>
             <span className="font-display text-xl font-700 text-navy">
-              Chinese<span className="text-gold">Cart</span>
+              Chinese<span className="text-gold">Bridge</span>
             </span>
           </div>
           <nav className="hidden items-center gap-5 lg:flex">
